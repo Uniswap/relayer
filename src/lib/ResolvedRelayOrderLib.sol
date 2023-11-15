@@ -13,7 +13,7 @@ library ResolvedRelayOrderLib {
 
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
-    function validate(ResolvedRelayOrder memory resolvedOrder, address) internal view {
+    function validate(ResolvedRelayOrder memory resolvedOrder, address filler) internal view {
         if (address(this) != address(resolvedOrder.info.reactor)) {
             revert InvalidReactor();
         }
