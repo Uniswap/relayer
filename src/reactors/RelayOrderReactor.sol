@@ -57,7 +57,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
+    function executeWithCallback(SignedOrder calldata, bytes calldata)
         external
         payable
         nonReentrant
@@ -80,7 +80,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         _fill(resolvedOrders);
     }
 
-    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
+    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata)
         external
         payable
         nonReentrant
