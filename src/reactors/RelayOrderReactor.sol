@@ -8,7 +8,6 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
 import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
-import {ProtocolFees} from "UniswapX/src/base/ProtocolFees.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
