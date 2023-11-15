@@ -6,15 +6,16 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {PermitExecutor} from "../../src/sample-executors/PermitExecutor.sol";
-import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature {
@@ -80,6 +81,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         USDC.transfer(swapper, 1000 * USDC_ONE);
         USDC.transfer(swapper2, 1000 * USDC_ONE);
         vm.stopPrank();
+
+        assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
+        assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
@@ -204,5 +208,43 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         assertGe(DAI.balanceOf(swapper2), amountOutMin, "Swapper did not receive enough output");
         // in this case, gas payment will go to executor
         assertEq(USDC.balanceOf(address(permitExecutor)), 10 * USDC_ONE, "filler did not receive enough USDC");
+    }
+
+    function testExecuteFailsIfReactorIsNotRecipient() public {
+        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
+        inputTokens[0] =
+            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputTokens[1] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        uint256 amountOutMin = 95 * USDC_ONE;
+
+        bytes[] memory actions = new bytes[](1);
+        // calldata same as testExecute but recipient is 0xdeadbeef. We don't use address zero for this test since some tokens block transfer to it explicitly
+        bytes memory DAI_USDC_UR_CALLDATA =
+            hex"24856bc3000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000deadbeef0000000000000000000000000000000000000000000000056bc75e2d631000000000000000000000000000000000000000000000000000000000000005adccc500000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b6b175474e89094c44da98b954eedeac495271d0f000064a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000";
+        actions[0] = abi.encode(ActionType.UniversalRouter, DAI_USDC_UR_CALLDATA);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputTokens,
+            outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        uint256 routerDaiBalanceBefore = DAI.balanceOf(UNIVERSAL_ROUTER);
+
+        vm.prank(filler);
+        vm.expectRevert(CurrencyLibrary.InsufficientBalance.selector);
+        reactor.execute(signedOrder);
     }
 }

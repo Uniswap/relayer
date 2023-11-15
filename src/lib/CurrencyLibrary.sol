@@ -16,6 +16,8 @@ library CurrencyLibrary {
 
     /// @notice Thrown when a native transfer fails
     error NativeTransferFailed();
+    /// @notice Thrown for insufficient balance
+    error InsufficientBalance();
 
     /// @notice Get the balance of a currency for addr
     /// @param currency The currency to get the balance of
@@ -29,33 +31,18 @@ library CurrencyLibrary {
         }
     }
 
-    /// @notice Transfer currency from the caller to recipient
-    /// @dev for native outputs we will already have the currency in local balance
-    /// @param currency The currency to transfer
-    /// @param recipient The recipient of the currency
-    /// @param amount The amount of currency to transfer
-    function transferFill(address currency, address recipient, uint256 amount) internal {
-        if (isNative(currency)) {
-            // we will have received native assets directly so can directly transfer
-            transferNative(recipient, amount);
-        } else {
-            // else the caller must have approved the token for the fill
-            ERC20(currency).safeTransferFrom(msg.sender, recipient, amount);
-        }
-    }
-
-    /// @notice Transfer currency from this contract's balance to recipient
+    /// @notice Transfer this contract's entire balance of a currency to recipient
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
     /// @param minAmount The minAmount of currency that must be transferred
     function transferFillFromBalance(address currency, address recipient, uint256 minAmount) internal {
         if (isNative(currency)) {
-            require(address(this).balance >= minAmount, "Insufficient native balance");
+            if (address(this).balance < minAmount) revert InsufficientBalance();
             // we will have received native assets directly so can directly transfer
             transferNative(recipient, address(this).balance);
         } else {
             uint256 balance = ERC20(currency).balanceOf(address(this));
-            require(balance >= minAmount, "Insufficient token balance");
+            if (balance < minAmount) revert InsufficientBalance();
             ERC20(currency).transfer(recipient, balance);
         }
     }
