@@ -83,7 +83,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                     (bool success,) = universalRouter.call(actionData);
                     if (!success) revert CallFailed();
                 }
-                // Give Permit2 max approval on the reactor
+                // Max approve an ERC20 to UniversalRouter from the reactor using Permit2
                 else if (actionType == ActionType.ApprovePermit2) {
                     (address token) = abi.decode(actionData, (address));
                     if (token == address(0)) revert InvalidToken();
