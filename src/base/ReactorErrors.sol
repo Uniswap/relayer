@@ -8,7 +8,7 @@ interface ReactorErrors {
 
     // A nested call failed
     error CallFailed();
-    
+
     error InvalidToken();
     error UnsupportedAction();
     error ReactorCallbackNotSupported();
