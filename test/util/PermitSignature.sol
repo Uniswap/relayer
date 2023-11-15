@@ -5,16 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
-import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
-import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
 import {RelayOrder, RelayOrderLib} from "../../src/lib/RelayOrderLib.sol";
-import {OrderInfo, InputToken, InputTokenWithRecipient} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {InputTokenWithRecipient} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
-    using LimitOrderLib for LimitOrder;
-    using DutchOrderLib for DutchOrder;
-    using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
     using RelayOrderLib for RelayOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
@@ -27,15 +22,6 @@ contract PermitSignature is Test {
 
     string public constant _PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB =
         "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,";
-
-    bytes32 constant LIMIT_ORDER_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, LimitOrderLib.PERMIT2_ORDER_TYPE));
-
-    bytes32 constant DUTCH_LIMIT_ORDER_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, DutchOrderLib.PERMIT2_ORDER_TYPE));
-
-    bytes32 constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, ExclusiveDutchOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant RELAY_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(_PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB, RelayOrderLib.PERMIT2_ORDER_TYPE));
@@ -133,54 +119,6 @@ contract PermitSignature is Test {
             deadline: info.deadline
         });
         return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    }
-
-    function signOrder(uint256 privateKey, address permit2, LimitOrder memory order)
-        internal
-        view
-        returns (bytes memory sig)
-    {
-        return signOrder(
-            privateKey,
-            permit2,
-            order.info,
-            address(order.input.token),
-            order.input.amount,
-            LIMIT_ORDER_TYPE_HASH,
-            order.hash()
-        );
-    }
-
-    function signOrder(uint256 privateKey, address permit2, DutchOrder memory order)
-        internal
-        view
-        returns (bytes memory sig)
-    {
-        return signOrder(
-            privateKey,
-            permit2,
-            order.info,
-            address(order.input.token),
-            order.input.endAmount,
-            DUTCH_LIMIT_ORDER_TYPE_HASH,
-            order.hash()
-        );
-    }
-
-    function signOrder(uint256 privateKey, address permit2, ExclusiveDutchOrder memory order)
-        internal
-        view
-        returns (bytes memory sig)
-    {
-        return signOrder(
-            privateKey,
-            permit2,
-            order.info,
-            address(order.input.token),
-            order.input.endAmount,
-            EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH,
-            order.hash()
-        );
     }
 
     function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)

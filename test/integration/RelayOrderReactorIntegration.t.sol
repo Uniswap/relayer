@@ -5,13 +5,8 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test} from "forge-std/Test.sol";
-import {
-    OrderInfo,
-    InputTokenWithRecipient,
-    OutputToken,
-    ResolvedRelayOrder,
-    SignedOrder
-} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";

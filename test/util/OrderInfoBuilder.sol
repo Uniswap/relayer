@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo} from "../../src/base/ReactorStructs.sol";
-import {IReactor} from "../../src/interfaces/IReactor.sol";
-import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
+import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
+import {IValidationCallback} from "UniswapX/src/interfaces/IValidationCallback.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
