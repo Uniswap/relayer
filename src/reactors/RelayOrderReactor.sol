@@ -6,20 +6,15 @@ import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.s
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
-import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {IReactor} from "../interfaces/IReactor.sol";
-import {ProtocolFees} from "../base/ProtocolFees.sol";
+import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
+import {ProtocolFees} from "UniswapX/src/base/ProtocolFees.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
-import {
-    SignedOrder,
-    ResolvedRelayOrder,
-    OrderInfo,
-    InputTokenWithRecipient,
-    OutputToken
-} from "../base/ReactorStructs.sol";
+import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for relaying calls to UniversalRouter onchain

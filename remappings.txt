@@ -9,3 +9,4 @@ solmate/=lib/solmate/
 erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
 openzeppelin/=lib/openzeppelin-contracts/contracts/
 universal-router/=lib/universal-router/
+UniswapX/=lib/UniswapX/

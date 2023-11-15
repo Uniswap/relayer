@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo, InputTokenWithRecipient, OutputToken} from "../base/ReactorStructs.sol";
-import {OrderInfoLib} from "./OrderInfoLib.sol";
+import {OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {OrderInfoLib} from "UniswapX/src/lib/OrderInfoLib.sol";
+import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
 
 enum ActionType {
     ApprovePermit2,
