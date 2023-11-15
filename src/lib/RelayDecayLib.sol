@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
+import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
 
 /// @notice helpers for handling dutch order objects
 library RelayDecayLib {

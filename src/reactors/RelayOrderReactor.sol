@@ -4,18 +4,18 @@ pragma solidity ^0.8.0;
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {ReactorEvents} from "../base/ReactorEvents.sol";
-import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
 import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ProtocolFees} from "UniswapX/src/base/ProtocolFees.sol";
+import {ReactorEvents} from "../base/ReactorEvents.sol";
+import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
-import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
-import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for relaying calls to UniversalRouter onchain
 /// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
@@ -57,11 +57,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata, bytes calldata)
-        external
-        payable
-        nonReentrant
-    {
+    function executeWithCallback(SignedOrder calldata, bytes calldata) external payable nonReentrant {
         revert ReactorCallbackNotSupported();
     }
 
@@ -80,11 +76,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         _fill(resolvedOrders);
     }
 
-    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata)
-        external
-        payable
-        nonReentrant
-    {
+    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata) external payable nonReentrant {
         revert ReactorCallbackNotSupported();
     }
 

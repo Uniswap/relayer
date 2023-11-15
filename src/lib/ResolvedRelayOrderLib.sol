@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "UniswapX/src/interfaces/IValidationCallback.sol";
+import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 
 library ResolvedRelayOrderLib {
     /// @notice thrown when the order targets a different reactor
