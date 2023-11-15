@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {IReactor} from "../interfaces/IReactor.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {SignedOrder} from "../base/ReactorStructs.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 
 /// @notice A simple fill contract that relays 2612 style permits on chain before filling a Relay order
 contract PermitExecutor is Owned {

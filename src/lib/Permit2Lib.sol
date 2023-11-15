@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {ResolvedOrder, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 
 /// @notice handling some permit2-specific encoding
 library Permit2Lib {
