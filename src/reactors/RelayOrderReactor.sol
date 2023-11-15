@@ -10,6 +10,7 @@ import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ProtocolFees} from "UniswapX/src/base/ProtocolFees.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
+import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
@@ -19,7 +20,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
 /// @notice Reactor for relaying calls to UniversalRouter onchain
 /// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
-contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IReactor {
+contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -27,23 +28,12 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
     using RelayOrderLib for RelayOrder;
     using RelayDecayLib for InputTokenWithRecipient[];
 
-    // Occurs when an output = ETH and the reactor does contain enough ETH but
-    // the direct filler did not include enough ETH in their call to execute/executeBatch
-    error InsufficientEth();
-    // A nested call failed
-    error CallFailed();
-    error InvalidToken();
-    error UnsupportedAction();
-    error ReactorCallbackNotSupported();
-
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
 
     address public immutable universalRouter;
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner, address _universalRouter)
-        ProtocolFees(_protocolFeeOwner)
-    {
+    constructor(IPermit2 _permit2, address _universalRouter) {
         permit2 = _permit2;
         universalRouter = _universalRouter;
     }
@@ -121,9 +111,6 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory order = orders[i];
 
-                // TODO fees impl
-                // _injectFees(order);
-
                 order.validate(msg.sender);
 
                 // Since relay order inputs specify recipients we don't pass in recipient here
@@ -195,6 +182,14 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
     /// @notice validate the relay order fields
     /// @dev Throws if the order is invalid
     function _validateOrder(RelayOrder memory order) internal pure {
-        // assert that actions are valid and allowed, that calldata is well formed, etc.
+        if (order.info.deadline < order.decayEndTime) {
+            revert DeadlineBeforeEndTime();
+        }
+
+        if (order.decayEndTime < order.decayStartTime) {
+            revert OrderEndTimeBeforeStartTime();
+        }
+
+        // TODO: add additional validations related to relayed actions, if desired
     }
 }
