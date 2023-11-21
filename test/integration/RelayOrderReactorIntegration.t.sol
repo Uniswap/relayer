@@ -5,18 +5,18 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
+import {OutputsBuilder} from "UniswapX/test/util/OutputsBuilder.sol";
+import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {PermitExecutor} from "../../src/sample-executors/PermitExecutor.sol";
-import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
