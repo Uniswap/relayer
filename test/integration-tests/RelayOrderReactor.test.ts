@@ -7,6 +7,7 @@ import { DAI, FEE_AMOUNT, USDC, buildTrade, getPool, swapOptions } from './share
 import { DEFAULT_FORK_BLOCK } from './shared/mainnetForkHelpers';
 import { hexToDecimalString } from './shared/hexToDecimalString';
 import { registerFixture } from './shared/writeInterop';
+import { expandTo18DecimalsBN } from './shared/helpers';
 
 const { ethers } = hre
 
@@ -23,7 +24,7 @@ describe("Relay order reactor tests", () => {
     it("basic v3 swap", async () => {
         const trade = await V3Trade.fromRoute(
             new RouteV3([DAI_USDC_V3], DAI, USDC),
-            CurrencyAmount.fromRawAmount(DAI, '100'),
+            CurrencyAmount.fromRawAmount(DAI, expandTo18DecimalsBN(100).toString()),
             TradeType.EXACT_INPUT
         )
         const opts = swapOptions({})
