@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
+import {SafeCast} from "openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
 address constant NATIVE = 0x0000000000000000000000000000000000000000;
