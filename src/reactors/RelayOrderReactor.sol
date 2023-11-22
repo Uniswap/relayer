@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";

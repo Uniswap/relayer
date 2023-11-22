@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
-import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {RelayOrder, RelayOrderLib} from "../../src/lib/RelayOrderLib.sol";
+import {RelayOrder, RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {OrderInfo, InputToken} from "UniswapX/src/base/ReactorStructs.sol";
-import {InputTokenWithRecipient} from "../../src/base/ReactorStructs.sol";
+import {InputTokenWithRecipient} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using RelayOrderLib for RelayOrder;
