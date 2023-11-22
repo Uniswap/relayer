@@ -19,7 +19,8 @@
     "node": ">=16"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.7.0"
+    "@openzeppelin/contracts": "4.7.0",
+    "@uniswap/universal-router-sdk": "^2.0.2"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "1.0.4",
