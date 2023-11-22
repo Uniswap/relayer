@@ -34,19 +34,20 @@ contract PermitExecutor is Owned {
     /// @notice the reactor performs no verification that the user's signed permit is executed correctly
     ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
     /// @dev assume 2612 permit is collected offchain
-    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData) external onlyWhitelistedCaller {
+    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData) external payable onlyWhitelistedCaller {
         _permit(permitData);
-        reactor.execute(order);
+        reactor.execute{value: msg.value}(order);
     }
 
     /// @notice assume that we already have all output tokens
     /// @dev assume 2612 permits are collected offchain
     function executeBatchWithPermit(SignedOrder[] calldata orders, bytes[] calldata permitData)
         external
+        payable
         onlyWhitelistedCaller
     {
         _permitBatch(permitData);
-        reactor.executeBatch(orders);
+        reactor.executeBatch{value: msg.value}(orders);
     }
 
     /// @notice execute a signed 2612-style permit

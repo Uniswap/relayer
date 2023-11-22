@@ -127,7 +127,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
-        reactor.execute(signedOrder);
+        reactor.execute{value: methodParameters.value}(signedOrder);
         snapEnd();
 
         assertEq(DAI.balanceOf(UNIVERSAL_ROUTER), routerDaiBalanceBefore, "No leftover input in router");
@@ -184,9 +184,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             abi.encode(address(USDC), abi.encode(swapper2, address(PERMIT2), amount, deadline, v, r, s));
 
         bytes[] memory actions = new bytes[](1);
-        bytes memory USDC_DAI_UR_CALLDATA =
-            hex"24856bc30000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000100000000000000000000000000378718523232a14be8a24e291b5a5075be04d1210000000000000000000000000000000000000000000000000000000005f5e100000000000000000000000000000000000000000000000005297ede6cd16022cc00000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000646b175474e89094c44da98b954eedeac495271d0f000000000000000000000000000000000000000000";
-        actions[0] = abi.encode(ActionType.UniversalRouter, USDC_DAI_UR_CALLDATA);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI");
+        actions[0] = abi.encode(ActionType.UniversalRouter, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
@@ -204,7 +203,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
-        permitExecutor.executeWithPermit(signedOrder, permitData);
+        permitExecutor.executeWithPermit{value: methodParameters.value}(signedOrder, permitData);
         snapEnd();
 
         assertEq(USDC.balanceOf(UNIVERSAL_ROUTER), routerUSDCBalanceBefore, "No leftover input in router");
@@ -228,10 +227,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         uint256 amountOutMin = 95 * USDC_ONE;
 
         bytes[] memory actions = new bytes[](1);
-        // calldata same as testExecute but recipient is 0xdeadbeef. We don't use address zero for this test since some tokens block transfer to it explicitly
-        bytes memory DAI_USDC_UR_CALLDATA_NON_REACTOR_RECIPIENT =
-            hex"24856bc3000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000deadbeef0000000000000000000000000000000000000000000000056bc75e2d631000000000000000000000000000000000000000000000000000000000000005adccc500000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b6b175474e89094c44da98b954eedeac495271d0f000064a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000";
-        actions[0] = abi.encode(ActionType.UniversalRouter, DAI_USDC_UR_CALLDATA_NON_REACTOR_RECIPIENT);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_NOT_REACTOR");        
+        actions[0] = abi.encode(ActionType.UniversalRouter, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -247,6 +244,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         vm.expectRevert(CurrencyLibrary.InsufficientBalance.selector);
-        reactor.execute(signedOrder);
+        reactor.execute{value: methodParameters.value}(signedOrder);
     }
 }
