@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {Test} from "forge-std/Test.sol";
+import {Test, stdJson} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
@@ -17,8 +17,10 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {PermitExecutor} from "../../../src/sample-executors/PermitExecutor.sol";
+import {Interop} from "../util/Interop.sol";
 
-contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature {
+contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
+    using stdJson for string;
     using OrderInfoBuilder for OrderInfo;
     using RelayOrderLib for RelayOrder;
 
@@ -42,6 +44,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     address filler;
     RelayOrderReactor reactor;
     PermitExecutor permitExecutor;
+    string json;
 
     error InvalidNonce();
     error InvalidSigner();
@@ -52,6 +55,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         swapper2PrivateKey = 0xbeef;
         swapper2 = vm.addr(swapper2PrivateKey);
         filler = makeAddr("filler");
+        string memory root = vm.projectRoot();
+        json = vm.readFile(string.concat(root, "/test/foundry-tests/interop.json"));
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
         deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
