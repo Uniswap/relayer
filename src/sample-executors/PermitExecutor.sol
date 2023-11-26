@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 
 /// @notice A simple fill contract that relays 2612 style permits on chain before filling a Relay order
 contract PermitExecutor is Owned {
@@ -17,7 +17,7 @@ contract PermitExecutor is Owned {
     error CallerNotWhitelisted();
 
     address private immutable whitelistedCaller;
-    IReactor private immutable reactor;
+    IRelayOrderReactor private immutable reactor;
 
     modifier onlyWhitelistedCaller() {
         if (msg.sender != whitelistedCaller) {
@@ -26,7 +26,7 @@ contract PermitExecutor is Owned {
         _;
     }
 
-    constructor(address _whitelistedCaller, IReactor _reactor, address _owner) Owned(_owner) {
+    constructor(address _whitelistedCaller, IRelayOrderReactor _reactor, address _owner) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
     }
@@ -34,19 +34,24 @@ contract PermitExecutor is Owned {
     /// @notice the reactor performs no verification that the user's signed permit is executed correctly
     ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
     /// @dev assume 2612 permit is collected offchain
-    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData) external onlyWhitelistedCaller {
+    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData)
+        external
+        payable
+        onlyWhitelistedCaller
+    {
         _permit(permitData);
-        reactor.execute(order);
+        reactor.execute{value: msg.value}(order);
     }
 
     /// @notice assume that we already have all output tokens
     /// @dev assume 2612 permits are collected offchain
     function executeBatchWithPermit(SignedOrder[] calldata orders, bytes[] calldata permitData)
         external
+        payable
         onlyWhitelistedCaller
     {
         _permitBatch(permitData);
-        reactor.executeBatch(orders);
+        reactor.executeBatch{value: msg.value}(orders);
     }
 
     /// @notice execute a signed 2612-style permit
