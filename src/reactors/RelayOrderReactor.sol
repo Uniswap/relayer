@@ -45,10 +45,6 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata, bytes calldata) external payable {
-        revert ReactorCallbackNotSupported();
-    }
-
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
@@ -62,10 +58,6 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _prepare(resolvedOrders);
         _execute(resolvedOrders);
         _fill(resolvedOrders);
-    }
-
-    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata) external payable {
-        revert ReactorCallbackNotSupported();
     }
 
     function _execute(ResolvedRelayOrder[] memory orders) internal {
