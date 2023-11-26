@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import {RoutePlanner, SwapRouter, UniswapTrade} from "@uniswap/universal-router-sdk";
+import { SwapRouter, UniswapTrade} from "@uniswap/universal-router-sdk";
 import {Pool, Route as RouteV3, Trade as V3Trade} from "@uniswap/v3-sdk";
 import { CurrencyAmount, Ether, TradeType } from '@uniswap/sdk-core';
 import { DAI, FEE_AMOUNT, USDC, WETH, buildTrade, getPool, swapOptions } from './shared/uniswapData';
