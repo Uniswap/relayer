@@ -87,7 +87,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                     (address token) = abi.decode(actionData, (address));
                     if (token == address(0)) revert InvalidToken();
                     if (ERC20(token).allowance(address(this), address(permit2)) == 0) {
-                        ERC20(token).approve(address(permit2), type(uint256).max);
+                        ERC20(token).safeApprove(address(permit2), type(uint256).max);
                     }
                     permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
                 }
