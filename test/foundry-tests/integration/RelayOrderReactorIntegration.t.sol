@@ -213,6 +213,52 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(address(permitExecutor)), 10 * USDC_ONE, "filler did not receive enough USDC");
     }
 
+    // swapper creates one order containing a universal router swap for 100 DAI -> ETH
+    // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
+    // at the forked block, X is the minAmountOut
+    function testExecuteWithNativeAsOutput() public {
+        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
+        inputTokens[0] =
+            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputTokens[1] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        uint256 amountOutMin = 51651245170979377; // with 5% slipapge at forked block
+
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_ETH");
+        actions[0] = abi.encode(ActionType.UniversalRouter, methodParameters.data);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputTokens,
+            // address 0 for native output
+            outputs: OutputsBuilder.single(address(0), amountOutMin, address(swapper))
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        uint256 routerDaiBalanceBefore = DAI.balanceOf(UNIVERSAL_ROUTER);
+
+        vm.prank(filler);
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
+        reactor.execute{value: methodParameters.value}(signedOrder);
+        snapEnd();
+
+        assertEq(DAI.balanceOf(UNIVERSAL_ROUTER), routerDaiBalanceBefore, "No leftover input in router");
+        assertEq(address(reactor).balance, 0, "No leftover output in reactor");
+        assertGe(swapper.balance, amountOutMin, "Swapper did not receive enough output");
+        assertEq(USDC.balanceOf((filler)), 10 * USDC_ONE, "filler did not receive enough USDC");
+    }
+
     function testExecuteFailsIfReactorIsNotRecipient() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
