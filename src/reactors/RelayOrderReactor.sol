@@ -6,8 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
-import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
-import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
+import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
@@ -19,7 +18,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
 /// @notice Reactor for relaying calls to UniversalRouter onchain
 /// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
-contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IReactor {
+contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -46,7 +45,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata, bytes calldata) external payable nonReentrant {
+    function executeWithCallback(SignedOrder calldata, bytes calldata) external payable {
         revert ReactorCallbackNotSupported();
     }
 
@@ -65,7 +64,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _fill(resolvedOrders);
     }
 
-    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata) external payable nonReentrant {
+    function executeBatchWithCallback(SignedOrder[] calldata, bytes calldata) external payable {
         revert ReactorCallbackNotSupported();
     }
 
