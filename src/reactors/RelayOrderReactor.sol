@@ -72,7 +72,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         // actions are encoded as (ActionType actionType, bytes actionData)[]
-        for (uint256 i = 0; i < ordersLength; i++) {
+        for (uint256 i = 0; i < ordersLength;) {
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
             for (uint256 j = 0; j < actionsLength;) {
@@ -98,6 +98,9 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                 unchecked {
                     j++;
                 }
+            }
+            unchecked {
+                i++;
             }
         }
     }
