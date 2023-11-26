@@ -209,8 +209,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(UNIVERSAL_ROUTER), routerUSDCBalanceBefore, "No leftover input in router");
         assertEq(DAI.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         assertGe(DAI.balanceOf(swapper2), amountOutMin, "Swapper did not receive enough output");
-        // in this case, gas payment will go to executor
-        assertEq(USDC.balanceOf(address(permitExecutor)), 10 * USDC_ONE, "filler did not receive enough USDC");
+        // in this case, gas payment will go to sender (executor)
+        assertEq(USDC.balanceOf(address(permitExecutor)), 10 * USDC_ONE, "executor did not receive enough USDC");
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> ETH
@@ -273,7 +273,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         uint256 amountOutMin = 95 * USDC_ONE;
 
         bytes[] memory actions = new bytes[](1);
-        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_NOT_REACTOR");        
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_NOT_REACTOR");
         actions[0] = abi.encode(ActionType.UniversalRouter, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
