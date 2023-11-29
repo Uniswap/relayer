@@ -102,6 +102,16 @@ library RelayOrderLib {
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
-        return keccak256(abi.encode(ORDER_TYPE_HASH, order.info.hash(), hash(order.inputs), hash(order.outputs)));
+        return keccak256(
+            abi.encode(
+                ORDER_TYPE_HASH, 
+                order.info.hash(), 
+                order.decayStartTime,
+                order.decayEndTime,
+                order.actions,
+                hash(order.inputs), 
+                hash(order.outputs)
+            )
+        );
     }
 }
