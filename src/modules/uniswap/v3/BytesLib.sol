@@ -3,7 +3,7 @@
 /// @title Library for Bytes Manipulation
 pragma solidity ^0.8.0;
 
-import {Constants} from '../../../libraries/Constants.sol';
+import {Constants} from 'universal-router/contracts/libraries/Constants.sol';
 
 library BytesLib {
     error SliceOutOfBounds();

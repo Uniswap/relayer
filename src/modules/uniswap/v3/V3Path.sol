@@ -2,7 +2,7 @@
 pragma solidity >=0.6.0;
 
 import {BytesLib} from './BytesLib.sol';
-import {Constants} from '../../../libraries/Constants.sol';
+import {Constants} from 'universal-router/contracts/libraries/Constants.sol';
 
 /// @title Functions for manipulating path data for multihop swaps
 library V3Path {
