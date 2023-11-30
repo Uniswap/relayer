@@ -6,9 +6,8 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test, stdJson} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
-import {OutputsBuilder} from "UniswapX/test/util/OutputsBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
@@ -115,8 +114,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -198,8 +196,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper2))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -259,9 +256,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            // address 0 for native output
-            outputs: OutputsBuilder.single(address(0), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -313,8 +308,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
