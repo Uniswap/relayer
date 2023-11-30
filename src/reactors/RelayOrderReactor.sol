@@ -16,8 +16,8 @@ import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
-/// @notice Reactor for relaying calls to UniversalRouter onchain
-/// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
+/// @notice Reactor for handling the execution of RelayOrders
+/// @notice This contract MUST NOT have approvals or priviledged access
 contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
