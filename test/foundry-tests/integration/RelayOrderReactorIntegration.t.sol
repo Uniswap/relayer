@@ -175,7 +175,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
                         address(PERMIT2),
                         type(uint256).max - 1, // infinite approval
                         USDC.nonces(swapper2),
-                        type(uint256).max - 1  // infinite deadline
+                        type(uint256).max - 1 // infinite deadline
                     )
                 )
             )
@@ -185,8 +185,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, swapper2);
 
-        bytes memory permitData =
-            abi.encode(address(USDC), abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s));
+        bytes memory permitData = abi.encode(
+            address(USDC), abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s)
+        );
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI");
@@ -219,12 +220,18 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         // swapper must have spent 100 USDC for the swap and 10 USDC for gas
         assertEq(
-            tokenIn.balanceOf(swapper2), swapperInputBalanceStart - 100 * USDC_ONE - 10 * USDC_ONE, "Swapper input tokens"
+            tokenIn.balanceOf(swapper2),
+            swapperInputBalanceStart - 100 * USDC_ONE - 10 * USDC_ONE,
+            "Swapper input tokens"
         );
         assertGe(
-            tokenOut.balanceOf(swapper2), swapperOutputBalanceStart + amountOutMin, "Swapper did not receive enough output"
+            tokenOut.balanceOf(swapper2),
+            swapperOutputBalanceStart + amountOutMin,
+            "Swapper did not receive enough output"
         );
-        assertEq(tokenIn.balanceOf(address(permitExecutor)), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
+        assertEq(
+            tokenIn.balanceOf(address(permitExecutor)), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance"
+        );
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> ETH
@@ -318,7 +325,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         reactor.execute{value: methodParameters.value}(signedOrder);
     }
 
-    function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput) internal {
+    function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)
+        internal
+    {
         swapperInputBalanceStart = tokenIn.balanceOf(_swapper);
         swapperOutputBalanceStart = tokenOut.balanceOf(_swapper);
         routerInputBalanceStart = tokenIn.balanceOf(UNIVERSAL_ROUTER);
