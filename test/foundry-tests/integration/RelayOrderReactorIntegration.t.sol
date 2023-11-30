@@ -73,8 +73,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.startPrank(swapper);
         DAI.approve(address(PERMIT2), type(uint256).max);
         USDC.approve(address(PERMIT2), type(uint256).max);
-        PERMIT2.approve(address(DAI), address(reactor), type(uint160).max, type(uint48).max);
-        PERMIT2.approve(address(USDC), address(reactor), type(uint160).max, type(uint48).max);
         vm.stopPrank();
 
         // Fund swappers
