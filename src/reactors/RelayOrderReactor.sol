@@ -6,10 +6,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {ReactorErrors} from "UniswapX/src/base/ReactorErrors.sol";
+import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {ReactorEvents} from "../base/ReactorEvents.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
@@ -26,6 +26,9 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
     using RelayDecayLib for InputTokenWithRecipient[];
+
+    /// @notice A nested call failed without a revert message
+    error CallFailed();
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -79,7 +82,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                         }
                     }
                     // Next 5 lines from https://ethereum.stackexchange.com/a/83577
-                    if (result.length < 68) revert();
+                    if (result.length < 68) revert CallFailed();
                     assembly {
                         result := add(result, 0x04)
                     }
