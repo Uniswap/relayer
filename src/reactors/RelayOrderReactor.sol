@@ -104,6 +104,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
+                ResolvedRelayOrder memory resolvedOrder = orders[i];
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
             }
         }
@@ -125,7 +126,6 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             info: order.info,
             actions: order.actions,
             inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
-            outputs: order.outputs,
             sig: signedOrder.sig,
             hash: order.hash()
         });

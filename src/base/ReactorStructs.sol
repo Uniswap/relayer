@@ -17,7 +17,6 @@ struct ResolvedRelayOrder {
     OrderInfo info;
     bytes[] actions;
     InputTokenWithRecipient[] inputs;
-    OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
 }
