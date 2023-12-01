@@ -69,8 +69,21 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             for (uint256 j = 0; j < actionsLength;) {
                 (address target, uint256 value, bytes memory data) =
                     abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success,) = target.call{value: value}(data);
-                if (!success) revert CallFailed();
+                (bool success, bytes memory result) = target.call{value: value}(data);
+                if (!success) {
+                    // handle custom errors
+                    if (result.length == 4) {
+                        assembly {
+                            revert(add(result, 0x20), mload(result))
+                        }
+                    }
+                    // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+                    if (result.length < 68) revert();
+                    assembly {
+                        result := add(result, 0x04)
+                    }
+                    revert(abi.decode(result, (string)));
+                }
                 unchecked {
                     j++;
                 }

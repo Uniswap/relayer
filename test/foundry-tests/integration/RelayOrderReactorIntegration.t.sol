@@ -286,6 +286,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
+    // in the case wehre the swapper incorrectly sets the recipient to an address that is not theirs, but the
+    // calldata includes a SWEEP back to them which should cause the transaction to revert
     function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
