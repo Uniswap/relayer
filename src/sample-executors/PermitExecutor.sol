@@ -5,8 +5,8 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 
 /// @notice A simple fill contract that relays 2612 style permits on chain before filling a Relay order
 contract PermitExecutor is Owned {
