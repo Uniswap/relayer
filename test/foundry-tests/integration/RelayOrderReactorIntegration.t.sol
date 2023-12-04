@@ -86,6 +86,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // initial assumptions
         assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
         assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
+
+        (uint160 allowance,,) = PERMIT2.allowance(swapper, address(USDC), address(reactor));
+        assertEq(allowance, 0, "reactor must not have allowance for tokens");
+        (allowance,,) = PERMIT2.allowance(swapper, address(DAI), address(reactor));
+        assertEq(allowance, 0, "reactor must not have approval for tokens");
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
