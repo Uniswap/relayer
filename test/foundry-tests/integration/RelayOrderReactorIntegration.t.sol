@@ -72,8 +72,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.startPrank(swapper);
         DAI.approve(address(PERMIT2), type(uint256).max);
         USDC.approve(address(PERMIT2), type(uint256).max);
-        PERMIT2.approve(address(DAI), address(reactor), type(uint160).max, type(uint48).max);
-        PERMIT2.approve(address(USDC), address(reactor), type(uint160).max, type(uint48).max);
         vm.stopPrank();
 
         // Fund swappers
@@ -87,6 +85,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // initial assumptions
         assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
         assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
+
+        (uint160 allowance,,) = PERMIT2.allowance(swapper, address(USDC), address(reactor));
+        assertEq(allowance, 0, "reactor must not have allowance for tokens");
+        (allowance,,) = PERMIT2.allowance(swapper, address(DAI), address(reactor));
+        assertEq(allowance, 0, "reactor must not have approval for tokens");
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
