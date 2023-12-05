@@ -12,12 +12,12 @@ import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
+import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
-/// @notice Reactor for relaying calls to UniversalRouter onchain
-/// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
+/// @notice Reactor for handling the execution of RelayOrders
+/// @notice This contract MUST NOT have approvals or priviledged access
 contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
@@ -62,30 +62,15 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
 
     function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
-        // actions are encoded as (ActionType actionType, bytes actionData)[]
+        // actions are encoded as (address target, uint256 value, bytes data)[]
         for (uint256 i = 0; i < ordersLength;) {
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
             for (uint256 j = 0; j < actionsLength;) {
-                (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
-                if (actionType == ActionType.UniversalRouter) {
-                    /// @dev to use universal router integration, this contract must be recipient of all output tokens
-                    (bool success,) = universalRouter.call(actionData);
-                    if (!success) revert CallFailed();
-                }
-                // Max approve an ERC20 to UniversalRouter from the reactor using Permit2
-                else if (actionType == ActionType.ApprovePermit2) {
-                    (address token) = abi.decode(actionData, (address));
-                    if (token == address(0)) revert InvalidToken();
-                    if (ERC20(token).allowance(address(this), address(permit2)) == 0) {
-                        ERC20(token).approve(address(permit2), type(uint256).max);
-                    }
-                    permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
-                }
-                // Catch unsupported action types
-                else {
-                    revert UnsupportedAction();
-                }
+                (address target, uint256 value, bytes memory data) =
+                    abi.decode(order.actions[j], (address, uint256, bytes));
+                (bool success,) = target.call{value: value}(data);
+                if (!success) revert CallFailed();
                 unchecked {
                     j++;
                 }

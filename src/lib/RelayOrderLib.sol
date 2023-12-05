@@ -5,12 +5,6 @@ import {OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoLib} from "UniswapX/src/lib/OrderInfoLib.sol";
 import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
 
-enum ActionType {
-    ApprovePermit2,
-    Permit2612,
-    UniversalRouter
-}
-
 /// @dev External struct used to specify simple relay orders
 struct RelayOrder {
     // generic order information
@@ -104,12 +98,12 @@ library RelayOrderLib {
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                ORDER_TYPE_HASH, 
-                order.info.hash(), 
+                ORDER_TYPE_HASH,
+                order.info.hash(),
                 order.decayStartTime,
                 order.decayEndTime,
                 order.actions,
-                hash(order.inputs), 
+                hash(order.inputs),
                 hash(order.outputs)
             )
         );
