@@ -63,10 +63,14 @@ library Permit2Lib {
         ISignatureTransfer.SignatureTransferDetails[] memory details =
             new ISignatureTransfer.SignatureTransferDetails[](order.inputs.length);
         for (uint256 i = 0; i < order.inputs.length; i++) {
-            // if recipient is 0x0, use msg.sender
-            address recipient = order.inputs[i].recipient == address(0) ? msg.sender : order.inputs[i].recipient;
-            details[i] =
-                ISignatureTransfer.SignatureTransferDetails({to: recipient, requestedAmount: order.inputs[i].amount});
+            InputTokenWithRecipient memory input = order.inputs[i];
+            // we only need to transfer positive token amounts
+            if(input.amount >= 0) {
+                // if recipient is 0x0, use msg.sender
+                address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
+                details[i] =
+                    ISignatureTransfer.SignatureTransferDetails({to: recipient, requestedAmount: input.amount});
+            }
         }
         return details;
     }

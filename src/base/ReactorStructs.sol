@@ -7,9 +7,16 @@ import {OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order
 struct InputTokenWithRecipient {
     ERC20 token;
-    uint256 amount;
-    // Needed for dutch decaying inputs
-    uint256 maxAmount;
+    int256 amount;
+    int256 maxAmount;
+    address recipient;
+}
+
+/// @dev An amount of input tokens that increases linearly over time
+struct RelayInput {
+    ERC20 token;
+    int256 startAmount;
+    int256 endAmount;
     address recipient;
 }
 
