@@ -30,11 +30,8 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
 
-    address public immutable universalRouter;
-
-    constructor(IPermit2 _permit2, address _universalRouter) {
+    constructor(IPermit2 _permit2) {
         permit2 = _permit2;
-        universalRouter = _universalRouter;
     }
 
     function execute(SignedOrder calldata order) external payable nonReentrant {
