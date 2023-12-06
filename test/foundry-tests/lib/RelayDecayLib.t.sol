@@ -86,8 +86,23 @@ contract RelayDecayLibTest is Test {
         assertGe(decayed, startAmount);
         assertLe(decayed, endAmount);
     }
+    
+    function testRelayDecayBounded(int256 startAmount, int256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
+        public
+    {
+        vm.assume(endAmount > startAmount);
+        vm.assume(decayEndTime >= decayStartTime);
+        unchecked {
+            // given that endAmount > startAmount, on overflow, check will be less than the absolute value of endAmount
+            int256 check = (endAmount > 0 ? endAmount : -endAmount) + (startAmount > 0 ? startAmount : -startAmount);
+            vm.assume(check >= (endAmount > 0 ? endAmount : -endAmount));
+        }
+        int256 decayed = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
+        assertGe(decayed, startAmount);
+        assertLe(decayed, endAmount);
+    }
 
-    function testRelayDecayNegative(
+    function testRelayDecayDecreasing(
         uint256 startAmount,
         uint256 endAmount,
         uint256 decayStartTime,
@@ -96,6 +111,24 @@ contract RelayDecayLibTest is Test {
         vm.assume(endAmount < startAmount);
         vm.assume(decayEndTime >= decayStartTime);
         uint256 decayed = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
+        assertLe(decayed, startAmount);
+        assertGe(decayed, endAmount);
+    }
+
+    function testRelayDecayDecreasing(
+        int256 startAmount,
+        int256 endAmount,
+        uint256 decayStartTime,
+        uint256 decayEndTime
+    ) public {
+        vm.assume(endAmount < startAmount);
+        vm.assume(decayEndTime >= decayStartTime);
+        unchecked {
+            // given that endAmount < startAmount, on overflow, check will be less than the absolute value of startAmount
+            int256 check = (endAmount > 0 ? endAmount : -endAmount) + (startAmount > 0 ? startAmount : -startAmount);
+            vm.assume(check >= (startAmount > 0 ? startAmount : -startAmount));
+        }
+        int256 decayed = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
         assertLe(decayed, startAmount);
         assertGe(decayed, endAmount);
     }

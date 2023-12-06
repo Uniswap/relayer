@@ -63,10 +63,10 @@ library RelayDecayLib {
                 uint256 duration = decayEndTime - decayStartTime;
                 if (endAmount < startAmount) {
                     decayedAmount =
-                        startAmount - int256(uint256(abs(startAmount) - abs(endAmount)).mulDivDown(elapsed, duration));
+                        startAmount - int256(uint256(abs(startAmount - endAmount)).mulDivDown(elapsed, duration));
                 } else {
                     decayedAmount =
-                        startAmount + int256(uint256(abs(endAmount) - abs(startAmount)).mulDivDown(elapsed, duration));
+                        startAmount + int256(uint256(abs(endAmount - startAmount)).mulDivDown(elapsed, duration));
                 }
             }
         }
