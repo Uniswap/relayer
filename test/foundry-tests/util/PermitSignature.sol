@@ -109,9 +109,11 @@ contract PermitSignature is Test {
         ISignatureTransfer.TokenPermissions[] memory permissions =
             new ISignatureTransfer.TokenPermissions[](inputs.length);
         for (uint256 i = 0; i < inputs.length; i++) {
-            if(inputs[i].amount > 0) {
-                permissions[i] =
-                    ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: uint256(inputs[i].amount)});
+            if (inputs[i].amount > 0) {
+                permissions[i] = ISignatureTransfer.TokenPermissions({
+                    token: address(inputs[i].token),
+                    amount: uint256(inputs[i].amount)
+                });
             }
         }
 

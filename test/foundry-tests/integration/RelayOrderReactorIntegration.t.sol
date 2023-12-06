@@ -97,7 +97,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         pure
         returns (InputTokenWithRecipient memory)
     {
-        return InputTokenWithRecipient({token: token, amount: int256(amount), maxAmount: int256(maxAmount), recipient: recipient});
+        return InputTokenWithRecipient({
+            token: token,
+            amount: int256(amount),
+            maxAmount: int256(maxAmount),
+            recipient: recipient
+        });
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
@@ -106,13 +111,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     function testExecute() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = _createInputTokenWithRecipient(DAI, 100 * ONE, 100 * ONE, UNIVERSAL_ROUTER);
-        inputTokens[1] = _createInputTokenWithRecipient(
-            USDC,
-            10 * USDC_ONE,
-            10 * USDC_ONE,
-            address(0)
-        );
-
+        inputTokens[1] = _createInputTokenWithRecipient(USDC, 10 * USDC_ONE, 10 * USDC_ONE, address(0));
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -158,12 +157,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // making a USDC -> DAI swap
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = _createInputTokenWithRecipient(USDC, 100 * USDC_ONE, 100 * USDC_ONE, UNIVERSAL_ROUTER);
-        inputTokens[1] = _createInputTokenWithRecipient(
-            USDC,
-            10 * USDC_ONE,
-            10 * USDC_ONE,
-            address(0)
-        );
+        inputTokens[1] = _createInputTokenWithRecipient(USDC, 10 * USDC_ONE, 10 * USDC_ONE, address(0));
 
         uint256 amountOutMin = 95 * ONE;
 
@@ -243,12 +237,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     function testExecuteWithNativeAsOutput() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = _createInputTokenWithRecipient(DAI, 100 * ONE, 100 * ONE, UNIVERSAL_ROUTER);
-        inputTokens[1] = _createInputTokenWithRecipient(
-            USDC,
-            10 * USDC_ONE,
-            10 * USDC_ONE,
-            address(0)
-        );
+        inputTokens[1] = _createInputTokenWithRecipient(USDC, 10 * USDC_ONE, 10 * USDC_ONE, address(0));
 
         uint256 amountOutMin = 51651245170979377; // with 5% slipapge at forked block
 
@@ -296,12 +285,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = _createInputTokenWithRecipient(DAI, 100 * ONE, 100 * ONE, UNIVERSAL_ROUTER);
-        inputTokens[1] = _createInputTokenWithRecipient(
-            USDC,
-            10 * USDC_ONE,
-            10 * USDC_ONE,
-            address(0)
-        );
+        inputTokens[1] = _createInputTokenWithRecipient(USDC, 10 * USDC_ONE, 10 * USDC_ONE, address(0));
 
         uint256 amountOutMin = 95 * USDC_ONE;
 

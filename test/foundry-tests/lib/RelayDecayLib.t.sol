@@ -86,7 +86,7 @@ contract RelayDecayLibTest is Test {
         assertGe(decayed, startAmount);
         assertLe(decayed, endAmount);
     }
-    
+
     function testRelayDecayBounded(int256 startAmount, int256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
         public
     {

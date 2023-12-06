@@ -120,13 +120,10 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory resolvedOrder = orders[i];
                 // If there are negative inputs, we must transfer those to the swapper from the reactor's balance
-                if (resolvedOrder.hasNegativeInputs()) {
-                    // Transfer the negative inputs to the swapper
-                    for (uint256 j = 0; j < resolvedOrder.inputs.length; j++) {
-                        InputTokenWithRecipient memory input = resolvedOrder.inputs[j];
-                        if (input.amount < 0) {
-                            input.token.transfer(resolvedOrder.info.swapper, uint256(-input.amount));
-                        }
+                for (uint256 j = 0; j < resolvedOrder.inputs.length; j++) {
+                    InputTokenWithRecipient memory input = resolvedOrder.inputs[j];
+                    if (input.amount < 0) {
+                        input.token.transfer(resolvedOrder.info.swapper, uint256(-input.amount));
                     }
                 }
 

@@ -56,7 +56,7 @@ library Permit2Lib {
         view
         returns (InputTokenWithRecipient[] memory)
     {
-        InputTokenWithRecipient[] memory positiveInputs;
+        InputTokenWithRecipient[] memory positiveInputs = new InputTokenWithRecipient[](inputs.length);
         for (uint256 i = 0; i < inputs.length; i++) {
             if (inputs[i].amount > 0) {
                 positiveInputs[i] = inputs[i];
