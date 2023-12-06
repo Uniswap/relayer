@@ -10,6 +10,9 @@ library ResolvedRelayOrderLib {
     /// @notice thrown if the order has expired
     error DeadlinePassed();
 
+    /// @notice thrown if the order has incorrect inputs
+    error InvalidInputs();
+
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
     function validate(ResolvedRelayOrder memory resolvedOrder, address filler) internal view {

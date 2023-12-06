@@ -4,47 +4,24 @@ pragma solidity ^0.8.0;
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {ResolvedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedRelayOrder, InputTokenWithRecipient} from "../base/ReactorStructs.sol";
 
 /// @notice handling some permit2-specific encoding
 library Permit2Lib {
     /// @notice returns a ResolvedOrder into a permit object
-    function toPermit(ResolvedOrder memory order)
-        internal
-        pure
-        returns (ISignatureTransfer.PermitTransferFrom memory)
-    {
-        return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({
-                token: address(order.input.token),
-                amount: order.input.maxAmount
-            }),
-            nonce: order.info.nonce,
-            deadline: order.info.deadline
-        });
-    }
-
-    /// @notice returns a ResolvedOrder into a permit object
-    function transferDetails(ResolvedOrder memory order, address to)
-        internal
-        pure
-        returns (ISignatureTransfer.SignatureTransferDetails memory)
-    {
-        return ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: order.input.amount});
-    }
-
-    /// @notice returns a ResolvedOrder into a permit object
     function toPermit(ResolvedRelayOrder memory order)
         internal
-        pure
+        view
         returns (ISignatureTransfer.PermitBatchTransferFrom memory)
     {
+        InputTokenWithRecipient[] memory inputsRequired = getPositiveInputs(order.inputs);
         ISignatureTransfer.TokenPermissions[] memory permissions =
-            new ISignatureTransfer.TokenPermissions[](order.inputs.length);
-        for (uint256 i = 0; i < order.inputs.length; i++) {
+            new ISignatureTransfer.TokenPermissions[](inputsRequired.length);
+
+        for (uint256 i = 0; i < inputsRequired.length; i++) {
             permissions[i] = ISignatureTransfer.TokenPermissions({
-                token: address(order.inputs[i].token),
-                amount: order.inputs[i].amount
+                token: address(inputsRequired[i].token),
+                amount: uint256(inputsRequired[i].amount) // safe to cast here because we check above
             });
         }
         return ISignatureTransfer.PermitBatchTransferFrom({
@@ -60,18 +37,31 @@ library Permit2Lib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory)
     {
+        InputTokenWithRecipient[] memory inputsRequired = getPositiveInputs(order.inputs);
         ISignatureTransfer.SignatureTransferDetails[] memory details =
-            new ISignatureTransfer.SignatureTransferDetails[](order.inputs.length);
-        for (uint256 i = 0; i < order.inputs.length; i++) {
-            InputTokenWithRecipient memory input = order.inputs[i];
-            // we only need to transfer positive token amounts
-            if(input.amount >= 0) {
-                // if recipient is 0x0, use msg.sender
-                address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
-                details[i] =
-                    ISignatureTransfer.SignatureTransferDetails({to: recipient, requestedAmount: input.amount});
-            }
+            new ISignatureTransfer.SignatureTransferDetails[](inputsRequired.length);
+        for (uint256 i = 0; i < inputsRequired.length; i++) {
+            // if recipient is 0x0, use msg.sender
+            address recipient = inputsRequired[i].recipient == address(0) ? msg.sender : inputsRequired[i].recipient;
+            details[i] = ISignatureTransfer.SignatureTransferDetails({
+                to: recipient,
+                requestedAmount: uint256(inputsRequired[i].amount) // safe to cast here because we check above
+            });
         }
         return details;
+    }
+
+    function getPositiveInputs(InputTokenWithRecipient[] memory inputs)
+        internal
+        view
+        returns (InputTokenWithRecipient[] memory)
+    {
+        InputTokenWithRecipient[] memory positiveInputs;
+        for (uint256 i = 0; i < inputs.length; i++) {
+            if (inputs[i].amount > 0) {
+                positiveInputs[i] = inputs[i];
+            }
+        }
+        return positiveInputs;
     }
 }

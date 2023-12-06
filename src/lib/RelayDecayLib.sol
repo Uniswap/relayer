@@ -46,6 +46,36 @@ library RelayDecayLib {
         }
     }
 
+    function decay(int256 startAmount, int256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
+        internal
+        view
+        returns (int256 decayedAmount)
+    {
+        if (decayEndTime < decayStartTime) {
+            revert EndTimeBeforeStartTime();
+        } else if (decayEndTime <= block.timestamp) {
+            decayedAmount = endAmount;
+        } else if (decayStartTime >= block.timestamp) {
+            decayedAmount = startAmount;
+        } else {
+            unchecked {
+                uint256 elapsed = block.timestamp - decayStartTime;
+                uint256 duration = decayEndTime - decayStartTime;
+                if (endAmount < startAmount) {
+                    decayedAmount =
+                        startAmount - int256(uint256(abs(startAmount) - abs(endAmount)).mulDivDown(elapsed, duration));
+                } else {
+                    decayedAmount =
+                        startAmount + int256(uint256(abs(endAmount) - abs(startAmount)).mulDivDown(elapsed, duration));
+                }
+            }
+        }
+    }
+
+    function abs(int256 x) internal pure returns (int256) {
+        return x >= 0 ? x : -x;
+    }
+
     /// @notice returns a decayed input array using the given decay spec and times
     /// @param inputs The input array to decay
     /// @param decayStartTime The time to start decaying
@@ -79,7 +109,7 @@ library RelayDecayLib {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedInput = RelayDecayLib.decay(input.amount, input.maxAmount, decayStartTime, decayEndTime);
+        int256 decayedInput = RelayDecayLib.decay(input.amount, input.maxAmount, decayStartTime, decayEndTime);
         result = InputTokenWithRecipient(input.token, decayedInput, input.maxAmount, input.recipient);
     }
 }

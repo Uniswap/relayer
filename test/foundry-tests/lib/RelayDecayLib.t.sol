@@ -10,68 +10,71 @@ contract RelayDecayLibTest is Test {
         assertEq(RelayDecayLib.decay(amount, amount, decayStartTime, decayEndTime), amount);
     }
 
+    uint256 constant ONE_ETHER = 1 ether;
+    uint256 constant TWO_ETHER = 2 ether;
+
     function testRelayDecayNoDecayYet() public {
         vm.warp(100);
         // at decayStartTime
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), ONE_ETHER);
 
         vm.warp(80);
         // before decayStartTime
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), ONE_ETHER);
     }
 
     function testRelayDecayNoDecayYetNegative() public {
         vm.warp(100);
         // at decayStartTime
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 2 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), TWO_ETHER);
 
         vm.warp(80);
         // before decayStartTime
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 2 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), TWO_ETHER);
     }
 
     function testRelayDecay() public {
         vm.warp(150);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1.5 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), 1.5 ether);
 
         vm.warp(180);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1.8 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), 1.8 ether);
 
         vm.warp(110);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1.1 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), 1.1 ether);
 
         vm.warp(190);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 1.9 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), 1.9 ether);
     }
 
     function testRelayDecayNegative() public {
         vm.warp(150);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1.5 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), 1.5 ether);
 
         vm.warp(180);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1.2 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), 1.2 ether);
 
         vm.warp(110);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1.9 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), 1.9 ether);
 
         vm.warp(190);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1.1 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), 1.1 ether);
     }
 
     function testRelayDecayFullyDecayed() public {
         vm.warp(200);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 2 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), TWO_ETHER);
 
         vm.warp(250);
-        assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 2 ether);
+        assertEq(RelayDecayLib.decay(ONE_ETHER, TWO_ETHER, 100, 200), TWO_ETHER);
     }
 
     function testRelayDecayFullyDecayedNegative() public {
         vm.warp(200);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), ONE_ETHER);
 
         vm.warp(250);
-        assertEq(RelayDecayLib.decay(2 ether, 1 ether, 100, 200), 1 ether);
+        assertEq(RelayDecayLib.decay(TWO_ETHER, ONE_ETHER, 100, 200), ONE_ETHER);
     }
 
     function testRelayDecayBounded(uint256 startAmount, uint256 endAmount, uint256 decayStartTime, uint256 decayEndTime)

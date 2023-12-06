@@ -15,8 +15,8 @@ struct InputTokenWithRecipient {
 /// @dev An amount of input tokens that increases linearly over time
 struct RelayInput {
     ERC20 token;
-    int256 startAmount;
-    int256 endAmount;
+    uint256 startAmount;
+    uint256 endAmount;
     address recipient;
 }
 
