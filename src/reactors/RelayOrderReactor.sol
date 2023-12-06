@@ -44,7 +44,13 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable nonReentrant {
+    /// @notice callbacks allow fillers to perform additional actions after the order is executed
+    /// example, to transfer in tokens to fill orders where users are owed additional amounts
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
         resolvedOrders[0] = resolve(order);
 
@@ -69,10 +75,13 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
         _fill(resolvedOrders);
     }
 
-    function executeBatchWithCallback(
-        SignedOrder[] calldata orders,
-        bytes calldata callbackData
-    ) external payable nonReentrant {
+    /// @notice callbacks allow fillers to perform additional actions after the order is executed
+    /// example, to transfer in tokens to fill orders where users are owed additional amounts
+    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
 
