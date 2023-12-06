@@ -7,8 +7,9 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
+import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
@@ -19,7 +20,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
+contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -43,6 +44,16 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _fill(resolvedOrders);
     }
 
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable nonReentrant {
+        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
+        resolvedOrders[0] = resolve(order);
+
+        _prepare(resolvedOrders);
+        _execute(resolvedOrders);
+        IRelayOrderReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        _fill(resolvedOrders);
+    }
+
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
@@ -55,6 +66,25 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
 
         _prepare(resolvedOrders);
         _execute(resolvedOrders);
+        _fill(resolvedOrders);
+    }
+
+    function executeBatchWithCallback(
+        SignedOrder[] calldata orders,
+        bytes calldata callbackData
+    ) external payable nonReentrant {
+        uint256 ordersLength = orders.length;
+        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
+
+        unchecked {
+            for (uint256 i = 0; i < ordersLength; i++) {
+                resolvedOrders[i] = resolve(orders[i]);
+            }
+        }
+
+        _prepare(resolvedOrders);
+        _execute(resolvedOrders);
+        IRelayOrderReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
         _fill(resolvedOrders);
     }
 
