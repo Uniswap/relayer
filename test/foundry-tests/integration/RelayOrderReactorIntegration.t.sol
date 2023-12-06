@@ -17,14 +17,11 @@ import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {PermitExecutor} from "../../../src/sample-executors/PermitExecutor.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
-import {UnsafeSignedMath} from "../util/UnsafeSignedMath.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
     using stdJson for string;
     using OrderInfoBuilder for OrderInfo;
     using RelayOrderLib for RelayOrder;
-    using UnsafeSignedMath for int256;
-    using UnsafeSignedMath for uint256;
 
     uint256 constant ONE = 10 ** 18;
     uint256 constant USDC_ONE = 10 ** 6;
