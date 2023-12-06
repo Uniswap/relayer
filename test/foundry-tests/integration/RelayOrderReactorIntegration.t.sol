@@ -67,7 +67,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         json = vm.readFile(string.concat(root, "/test/foundry-tests/interop.json"));
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
+        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
@@ -75,8 +75,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.startPrank(swapper);
         DAI.approve(address(PERMIT2), type(uint256).max);
         USDC.approve(address(PERMIT2), type(uint256).max);
-        PERMIT2.approve(address(DAI), address(reactor), type(uint160).max, type(uint48).max);
-        PERMIT2.approve(address(USDC), address(reactor), type(uint160).max, type(uint48).max);
         vm.stopPrank();
 
         // Fund swappers
@@ -90,6 +88,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // initial assumptions
         assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
         assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
+
+        (uint160 allowance,,) = PERMIT2.allowance(swapper, address(USDC), address(reactor));
+        assertEq(allowance, 0, "reactor must not have allowance for tokens");
+        (allowance,,) = PERMIT2.allowance(swapper, address(DAI), address(reactor));
+        assertEq(allowance, 0, "reactor must not have approval for tokens");
     }
 
     function _createInputTokenWithRecipient(ERC20 token, uint256 amount, uint256 maxAmount, address recipient)
