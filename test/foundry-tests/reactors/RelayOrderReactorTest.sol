@@ -28,6 +28,9 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     uint256 swapperPrivateKey;
     address swapper;
 
+    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
@@ -63,12 +66,13 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenIn.mint(address(fillContract), uint256(inputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](1);
         inputTokens[0] = InputTokenWithRecipient({
             token: tokenIn,
-            amount: int256(inputAmount),
+            amount: -int256(inputAmount),
             maxAmount: int256(inputAmount),
             // sending to filler
             recipient: address(0)
@@ -87,8 +91,15 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
-        // vm.expectEmit(true, true, true, true, address(reactor));
-        // emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // warp to precisely 25% way through the decay
+        vm.warp(block.timestamp + 250);
+
+        vm.expectEmit(true, true, true, false);
+        emit Transfer(address(fillContract), address(reactor), 500000000000000000);
+        vm.expectEmit(true, true, true, false);
+        emit Transfer(address(reactor), swapper, 500000000000000000);
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
         snapStart("ExecuteSingle");
         fillContract.execute(signedOrder);
