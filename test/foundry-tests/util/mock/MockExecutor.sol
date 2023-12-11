@@ -5,7 +5,8 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {IReactorCallback} from "UniswapX/src/interfaces/IReactorCallback.sol";
-import {ResolvedOrder, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {ResolvedRelayOrder, InputTokenWithRecipient} from "../../../../src/base/ReactorStructs.sol";
 
 contract MockFillContract {
     using CurrencyLibrary for address;
@@ -26,15 +27,17 @@ contract MockFillContract {
         reactor.executeBatchWithCallback(orders, hex"");
     }
 
-    /// @notice assume that we already have all output tokens
-    function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory) external {
+    function reactorCallback(ResolvedRelayOrder[] memory resolvedOrders, bytes memory) external {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
-                OutputToken memory output = resolvedOrders[i].outputs[j];
-                if (output.token.isNative()) {
-                    CurrencyLibrary.transferNative(address(reactor), output.amount);
-                } else {
-                    ERC20(output.token).approve(address(reactor), type(uint256).max);
+            for (uint256 j = 0; j < resolvedOrders[i].inputs.length; j++) {
+                InputTokenWithRecipient memory input = resolvedOrders[i].inputs[j];
+                // only need to transfer to reactor if negative (swapper is owed)
+                if (input.amount < 0) {
+                    if (address(input.token).isNative()) {
+                        CurrencyLibrary.transferNative(address(reactor), uint256(-input.amount));
+                    } else {
+                        input.token.transfer(address(reactor), uint256(-input.amount));
+                    }
                 }
             }
         }
