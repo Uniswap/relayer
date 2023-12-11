@@ -9,10 +9,6 @@ interface ReactorErrors {
     // A nested call failed
     error CallFailed();
 
-    error InvalidToken();
-    error UnsupportedAction();
-    error ReactorCallbackNotSupported();
-
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
 

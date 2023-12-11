@@ -5,12 +5,12 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SignedOrder, OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {ReactorEvents} from "../base/ReactorEvents.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
-import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
+import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
@@ -18,6 +18,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
+/// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
@@ -29,11 +30,8 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
 
-    address public immutable universalRouter;
-
-    constructor(IPermit2 _permit2, address _universalRouter) {
+    constructor(IPermit2 _permit2) {
         permit2 = _permit2;
-        universalRouter = _universalRouter;
     }
 
     function execute(SignedOrder calldata order) external payable nonReentrant {
@@ -86,7 +84,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         }
     }
 
-    /// @notice validates, injects fees, and transfers input tokens in preparation for order fill
+    /// @notice validates and transfers input tokens in preparation for order fill
     /// @param orders The orders to prepare
     function _prepare(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
@@ -102,30 +100,16 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         }
     }
 
-    /// @notice fills a list of orders, ensuring all outputs are satisfied
-    /// @param orders The orders to fill
+    /// @notice emits a Fill event for each order
+    /// @notice all output token checks must be done in the encoded actions within the order
+    /// @param orders The orders that have been filled
     function _fill(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
-        // attempt to transfer all currencies to all recipients
         unchecked {
-            // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory resolvedOrder = orders[i];
-                uint256 outputsLength = resolvedOrder.outputs.length;
-                for (uint256 j = 0; j < outputsLength; j++) {
-                    OutputToken memory output = resolvedOrder.outputs[j];
-                    output.token.transferFillFromBalance(output.recipient, output.amount);
-                }
-
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
             }
-        }
-
-        // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
-        // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
-        // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
-        if (address(this).balance > 0) {
-            CurrencyLibrary.transferNative(msg.sender, address(this).balance);
         }
     }
 
@@ -145,7 +129,6 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             info: order.info,
             actions: order.actions,
             inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
-            outputs: order.outputs,
             sig: signedOrder.sig,
             hash: order.hash()
         });

@@ -14,7 +14,7 @@ import {
 import { CurrencyAmount, TradeType, Ether, Token, Percent, Currency } from '@uniswap/sdk-core'
 import IUniswapV3Pool from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json'
 import { SwapOptions } from '@uniswap/universal-router-sdk'
-import { DEFAULT_FORK_BLOCK, FORGE_ROUTER_ADDRESS } from './mainnetForkHelpers'
+import { DEFAULT_FORK_BLOCK, FORGE_ROUTER_ADDRESS, FORGE_SWAPPER_ADDRESS } from './mainnetForkHelpers'
 
 const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
 const V2_ABI = [
@@ -118,7 +118,7 @@ export function swapOptions(options: Partial<SwapOptions>): SwapOptions {
   return Object.assign(
     {
       slippageTolerance: new Percent(5, 100),
-      recipient: FORGE_ROUTER_ADDRESS,
+      recipient: FORGE_SWAPPER_ADDRESS,
       payerIsRouter: true
     },
     options

@@ -6,13 +6,12 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test, stdJson} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {OrderInfo, OutputToken, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
-import {OutputsBuilder} from "UniswapX/test/util/OutputsBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
-import {CurrencyLibrary} from "../../../src/lib/CurrencyLibrary.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
@@ -65,7 +64,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         json = vm.readFile(string.concat(root, "/test/foundry-tests/interop.json"));
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
+        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
@@ -118,8 +117,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -193,7 +191,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         );
 
         bytes[] memory actions = new bytes[](1);
-        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI");
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
@@ -201,8 +199,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper2))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -262,9 +259,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            // address 0 for native output
-            outputs: OutputsBuilder.single(address(0), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
@@ -294,7 +289,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-    function testExecuteFailsIfReactorIsNotRecipient() public {
+    // in the case wehre the swapper incorrectly sets the recipient to an address that is not theirs, but the
+    // calldata includes a SWEEP back to them which should cause the transaction to revert
+    function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
@@ -308,7 +305,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         uint256 amountOutMin = 95 * USDC_ONE;
 
         bytes[] memory actions = new bytes[](1);
-        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_NOT_REACTOR");
+        MethodParameters memory methodParameters =
+            readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_REACTOR_WITH_SWEEP");
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
@@ -316,15 +314,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens,
-            outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
+            inputs: inputTokens
         });
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         vm.prank(filler);
-        vm.expectRevert(CurrencyLibrary.InsufficientBalance.selector);
+        vm.expectRevert(0x675cae38); // InvalidToken()
         reactor.execute{value: methodParameters.value}(signedOrder);
     }
 
