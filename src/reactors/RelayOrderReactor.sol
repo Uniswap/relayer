@@ -67,8 +67,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
             for (uint256 j = 0; j < actionsLength;) {
-                (bytes memory data, uint256 value) =
-                    abi.decode(order.actions[j], (bytes, uint256));
+                (bytes memory data, uint256 value) = abi.decode(order.actions[j], (bytes, uint256));
                 (bool success, bytes memory result) = universalRouter.call{value: value}(data);
                 if (!success) {
                     // bubble up all errors, including custom errors which are encoded like functions
