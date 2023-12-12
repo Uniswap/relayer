@@ -29,9 +29,11 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
+    address public immutable universalRouter;
 
-    constructor(IPermit2 _permit2) {
+    constructor(IPermit2 _permit2, address _universalRouter) {
         permit2 = _permit2;
+        universalRouter = _universalRouter;
     }
 
     function execute(SignedOrder calldata order) external payable nonReentrant {
@@ -65,9 +67,9 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
             for (uint256 j = 0; j < actionsLength;) {
-                (address target, uint256 value, bytes memory data) =
-                    abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success, bytes memory result) = target.call{value: value}(data);
+                (bytes memory data, uint256 value) =
+                    abi.decode(order.actions[j], (bytes, uint256));
+                (bool success, bytes memory result) = universalRouter.call{value: value}(data);
                 if (!success) {
                     // bubble up all errors, including custom errors which are encoded like functions
                     assembly {
