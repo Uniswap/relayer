@@ -24,15 +24,4 @@ library ResolvedRelayOrderLib {
             revert DeadlinePassed();
         }
     }
-
-    function hasNegativeInputs(ResolvedRelayOrder memory resolvedOrder) internal pure returns (bool) {
-        unchecked {
-            for (uint256 i = 0; i < resolvedOrder.inputs.length; i++) {
-                if (resolvedOrder.inputs[i].amount < 0) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
 }
