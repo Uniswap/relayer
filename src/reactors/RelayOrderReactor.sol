@@ -140,7 +140,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     }
 
     /// @notice emits a Fill event for each order
-    /// @notice all output token checks must be done in the encoded actions within the order
+    /// @notice any output token checks must be encoded in the order specified actions
     /// @param orders The orders that have been filled
     function _fill(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
