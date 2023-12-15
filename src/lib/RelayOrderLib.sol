@@ -24,7 +24,7 @@ library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes private constant INPUT_TOKEN_TYPE =
-        "InputTokenWithRecipient(address token,uint256 amount,uint256 maxAmount,address recipient)";
+        "InputTokenWithRecipient(address token,int256 amount,int256 maxAmount,address recipient)";
 
     bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
 
@@ -47,7 +47,7 @@ library RelayOrderLib {
 
     /// @notice returns the hash of an input token struct
     function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
-        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount));
+        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount, input.recipient));
     }
 
     /// @notice returns the hash of an input token struct
