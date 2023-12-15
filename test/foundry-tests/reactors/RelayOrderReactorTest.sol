@@ -21,7 +21,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     using RelayOrderLib for RelayOrder;
 
     MockERC20 tokenIn;
-    MockERC20 tokenOut;
     MockFillContract fillContract;
     IPermit2 permit2;
     RelayOrderReactor reactor;
@@ -33,7 +32,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
-        tokenOut = new MockERC20("Output", "OUT", 18);
 
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
@@ -41,6 +39,10 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         reactor = new RelayOrderReactor(permit2);
 
         fillContract = new MockFillContract(address(reactor));
+
+        // swapper approves permit2 to transfer tokens
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        assertEq(tokenIn.allowance(swapper, address(permit2)), type(uint256).max);
     }
 
     /// @notice Create and return a basic single Relay order along with its signature, orderHash, and orderInfo
@@ -61,7 +63,57 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     }
 
     /// @dev Test of a simple execute
-    function testBaseExecute() public {
+    /// @dev this order has no actions and its inputs decay from 0 ether to 1 ether
+    function testExecuteSingle() public {
+        uint256 inputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenIn.mint(address(fillContract), uint256(inputAmount) * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](1);
+        inputTokens[0] = InputTokenWithRecipient({
+            token: tokenIn,
+            amount: 0,
+            maxAmount: int256(inputAmount),
+            // sending to filler
+            recipient: address(0)
+        });
+
+        bytes[] memory actions = new bytes[](1);
+        actions[0] = "";
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            decayStartTime: block.timestamp,
+            decayEndTime: deadline,
+            actions: actions,
+            inputs: inputTokens
+        });
+        bytes32 orderHash = order.hash();
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        uint256 fillContractTokenInBefore = tokenIn.balanceOf(address(fillContract));
+
+        // warp to precisely 25% way through the decay
+        vm.warp(block.timestamp + 250);
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
+        snapStart("ExecuteSingleWithRebate");
+        fillContract.execute(signedOrder);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractTokenInBefore + 250000000000000000);
+    }
+
+    /// @dev Test of a simple execute
+    /// @dev this order has no actions and its inputs decay from -1 ether to 1 ether
+    function testExecuteSingleWithRebate() public {
         uint256 inputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
@@ -101,7 +153,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        snapStart("ExecuteSingle");
+        snapStart("ExecuteSingleWithRebate");
         fillContract.execute(signedOrder);
         snapEnd();
     }

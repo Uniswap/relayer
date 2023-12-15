@@ -47,7 +47,7 @@ library RelayOrderLib {
 
     /// @notice returns the hash of an input token struct
     function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
-        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount));
+        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount, input.recipient));
     }
 
     /// @notice returns the hash of an input token struct
