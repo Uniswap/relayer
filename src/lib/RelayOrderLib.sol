@@ -34,10 +34,9 @@ library RelayOrderLib {
         "uint256 decayStartTime,",
         "uint256 decayEndTime,",
         "bytes[] actions,",
-        "InputTokenWithRecipient[] inputs,",
-        "OutputToken[] outputs)",
-        OrderInfoLib.ORDER_INFO_TYPE,
-        INPUT_TOKEN_TYPE
+        "InputTokenWithRecipient[] inputs)",
+        INPUT_TOKEN_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
