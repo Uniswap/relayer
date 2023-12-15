@@ -7,9 +7,9 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
-import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
@@ -20,7 +20,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, ReentrancyGuard {
+contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -142,7 +142,7 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
     }
 
     /// @notice emits a Fill event for each order
-    /// @notice all output token checks must be done in the encoded actions within the order
+    /// @notice any output token checks must be encoded in the order specified actions
     /// @param orders The orders that have been filled
     function _fill(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;

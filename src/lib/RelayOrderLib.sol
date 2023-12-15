@@ -24,7 +24,7 @@ library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes private constant INPUT_TOKEN_TYPE =
-        "InputTokenWithRecipient(address token,uint256 amount,uint256 maxAmount,address recipient)";
+        "InputTokenWithRecipient(address token,int256 amount,int256 maxAmount,address recipient)";
 
     bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
 
@@ -34,10 +34,9 @@ library RelayOrderLib {
         "uint256 decayStartTime,",
         "uint256 decayEndTime,",
         "bytes[] actions,",
-        "InputTokenWithRecipient[] inputs,",
-        "OutputToken[] outputs)",
-        OrderInfoLib.ORDER_INFO_TYPE,
-        INPUT_TOKEN_TYPE
+        "InputTokenWithRecipient[] inputs)",
+        INPUT_TOKEN_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
