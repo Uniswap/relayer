@@ -37,15 +37,15 @@ library RelayOrderLib {
         "InputTokenWithRecipient[] inputs)"
     );
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
-        RELAY_ORDER_TYPE, INPUT_TOKEN_TYPE, OrderInfoLib.ORDER_INFO_TYPE
-    );
+    bytes internal constant ORDER_TYPE =
+        abi.encodePacked(RELAY_ORDER_TYPE, INPUT_TOKEN_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
 
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
-    string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPE, OrderInfoLib.ORDER_INFO_TYPE, TOKEN_PERMISSIONS_TYPE));
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPE, OrderInfoLib.ORDER_INFO_TYPE, TOKEN_PERMISSIONS_TYPE)
+    );
 
     /// @notice returns the hash of an input token struct
     function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
