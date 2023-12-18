@@ -17,9 +17,6 @@ contract PermitSignature is Test {
 
     bytes32 internal constant TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
 
-    string constant TYPEHASH_STUB =
-        "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,";
-
     string public constant _PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB =
         "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,";
 

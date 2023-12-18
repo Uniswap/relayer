@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console2} from "forge-std/console2.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
@@ -31,11 +32,16 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     function setUp() public {
+        vm.chainId(1);
+
         tokenIn = new MockERC20("Input", "IN", 18);
 
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
+        console2.logBytes32(permit2.DOMAIN_SEPARATOR());
+        console2.log(block.chainid);
+
         reactor = new RelayOrderReactor(permit2);
 
         fillContract = new MockFillContract(address(reactor));
@@ -82,7 +88,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         });
 
         bytes[] memory actions = new bytes[](1);
-        actions[0] = "";
+        actions[0] = hex"";
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
