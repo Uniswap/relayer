@@ -92,7 +92,7 @@ contract PermitSignature is Test {
             if (inputs[i].amount > 0) {
                 permissions[i] = ISignatureTransfer.TokenPermissions({
                     token: address(inputs[i].token),
-                    amount: uint256(inputs[i].amount)
+                    amount: uint256(inputs[i].maxAmount)
                 });
             }
         }
