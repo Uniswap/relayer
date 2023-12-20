@@ -6,7 +6,7 @@ import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 
 /// @notice A simple fill contract that relays 2612 style permits on chain before filling a Relay order
 contract PermitExecutor is Owned {
@@ -17,7 +17,7 @@ contract PermitExecutor is Owned {
     error CallerNotWhitelisted();
 
     address private immutable whitelistedCaller;
-    IRelayOrderReactor private immutable reactor;
+    IReactor private immutable reactor;
 
     modifier onlyWhitelistedCaller() {
         if (msg.sender != whitelistedCaller) {
@@ -26,7 +26,7 @@ contract PermitExecutor is Owned {
         _;
     }
 
-    constructor(address _whitelistedCaller, IRelayOrderReactor _reactor, address _owner) Owned(_owner) {
+    constructor(address _whitelistedCaller, IReactor _reactor, address _owner) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
     }

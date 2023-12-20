@@ -6,20 +6,21 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedRelayOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, RelayInput, RelayOutput} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
+contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -44,6 +45,22 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _fill(resolvedOrders);
     }
 
+    /// @notice callbacks allow fillers to perform additional actions after the order is executed
+    /// example, to transfer in tokens to fill orders where users are owed additional amounts
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {
+        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
+        resolvedOrders[0] = resolve(order);
+
+        _prepare(resolvedOrders);
+        _execute(resolvedOrders);
+        IRelayOrderReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        _fill(resolvedOrders);
+    }
+
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
@@ -56,6 +73,29 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
 
         _prepare(resolvedOrders);
         _execute(resolvedOrders);
+        _fill(resolvedOrders);
+    }
+
+
+    /// @notice callbacks allow fillers to perform additional actions after the order is executed
+    /// example, to transfer in tokens to fill orders where users are owed additional amounts
+    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {
+        uint256 ordersLength = orders.length;
+        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
+
+        unchecked {
+            for (uint256 i = 0; i < ordersLength; i++) {
+                resolvedOrders[i] = resolve(orders[i]);
+            }
+        }
+
+        _prepare(resolvedOrders);
+        _execute(resolvedOrders);
+        IRelayOrderReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
         _fill(resolvedOrders);
     }
 
@@ -106,9 +146,17 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     /// @param orders The orders that have been filled
     function _fill(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
+        // attempt to transfer all currencies to all recipients
         unchecked {
+            // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory resolvedOrder = orders[i];
+                uint256 outputsLength = resolvedOrder.outputs.length;
+                for (uint256 j = 0; j < outputsLength; j++) {
+                    OutputToken memory output = resolvedOrder.outputs[j];
+                    output.token.transferFillFromBalance(output.recipient, output.amount);
+                }
+
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
             }
         }
