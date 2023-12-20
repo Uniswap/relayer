@@ -76,7 +76,6 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
         _fill(resolvedOrders);
     }
 
-
     /// @notice callbacks allow fillers to perform additional actions after the order is executed
     /// example, to transfer in tokens to fill orders where users are owed additional amounts
     function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)

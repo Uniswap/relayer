@@ -153,7 +153,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
 
         RelayOutput[] memory outputTokens = new RelayOutput[](1);
-        outputTokens[0] = RelayOutput({token: address(USDC), startAmount: 5 * USDC_ONE, endAmount: 0 * USDC_ONE, recipient: swapper});
+        outputTokens[0] =
+            RelayOutput({token: address(USDC), startAmount: 5 * USDC_ONE, endAmount: 0 * USDC_ONE, recipient: swapper});
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -195,7 +196,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE + 5 * USDC_ONE,
             "Swapper did not receive enough output"
         );
-        assertEq(tokenOut.balanceOf(address(mockFillContractWithRebate)), fillerGasInputBalanceStart + 10 * USDC_ONE - 5 * USDC_ONE, "filler balance");
+        assertEq(
+            tokenOut.balanceOf(address(mockFillContractWithRebate)),
+            fillerGasInputBalanceStart + 10 * USDC_ONE - 5 * USDC_ONE,
+            "filler balance"
+        );
     }
 
     function testPermitAndExecute() public {
