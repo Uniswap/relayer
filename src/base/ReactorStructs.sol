@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {OrderInfo, OutputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order
 struct InputTokenWithRecipient {
@@ -13,10 +13,18 @@ struct InputTokenWithRecipient {
     address recipient;
 }
 
+/// @dev tokens that need to be received by the recipient in order to satisfy an order
+struct OutputToken {
+    address token;
+    uint256 amount;
+    address recipient;
+}
+
 struct ResolvedRelayOrder {
     OrderInfo info;
     bytes[] actions;
     InputTokenWithRecipient[] inputs;
+    OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
 }

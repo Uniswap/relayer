@@ -9,10 +9,10 @@ import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
+import {RelayOrderLib, RelayOrder, RelayInput, RelayOutput} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 
@@ -25,7 +25,8 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     using Permit2Lib for ResolvedRelayOrder;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
-    using RelayDecayLib for InputTokenWithRecipient[];
+    using RelayDecayLib for RelayInput[];
+    using RelayDecayLib for RelayOutput[];
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -129,6 +130,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             info: order.info,
             actions: order.actions,
             inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
+            outputs: order.outputs.decay(order.decayStartTime, order.decayEndTime),
             sig: signedOrder.sig,
             hash: order.hash()
         });

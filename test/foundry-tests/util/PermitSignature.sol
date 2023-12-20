@@ -5,9 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {RelayOrder, RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
+import {RelayOrder, RelayInput, RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {OrderInfo, InputToken} from "UniswapX/src/base/ReactorStructs.sol";
-import {InputTokenWithRecipient} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using RelayOrderLib for RelayOrder;
@@ -102,7 +101,7 @@ contract PermitSignature is Test {
         uint256 privateKey,
         address permit2,
         OrderInfo memory info,
-        InputTokenWithRecipient[] memory inputs,
+        RelayInput[] memory inputs,
         bytes32 typeHash,
         bytes32 orderHash
     ) internal view returns (bytes memory sig) {
@@ -110,7 +109,7 @@ contract PermitSignature is Test {
             new ISignatureTransfer.TokenPermissions[](inputs.length);
         for (uint256 i = 0; i < inputs.length; i++) {
             permissions[i] =
-                ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].amount});
+                ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].endAmount});
         }
 
         ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({

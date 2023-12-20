@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
-import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
+import {InputTokenWithRecipient, OutputToken} from "../base/ReactorStructs.sol";
+import {RelayInput, RelayOutput} from "./RelayOrderLib.sol";
 
 /// @notice helpers for handling dutch order objects
 library RelayDecayLib {
@@ -51,7 +52,7 @@ library RelayDecayLib {
     /// @param decayStartTime The time to start decaying
     /// @param decayEndTime The time to end decaying
     /// @return result a decayed input array
-    function decay(InputTokenWithRecipient[] memory inputs, uint256 decayStartTime, uint256 decayEndTime)
+    function decay(RelayInput[] memory inputs, uint256 decayStartTime, uint256 decayEndTime)
         internal
         view
         returns (InputTokenWithRecipient[] memory result)
@@ -65,21 +66,58 @@ library RelayDecayLib {
         }
     }
 
+    /// @notice returns a decayed otuput array using the given decay spec and times
+    /// @param outputs The input array to decay
+    /// @param decayStartTime The time to start decaying
+    /// @param decayEndTime The time to end decaying
+    /// @return result a decayed input array
+    function decay(RelayOutput[] memory outputs, uint256 decayStartTime, uint256 decayEndTime)
+        internal
+        view
+        returns (OutputToken[] memory result)
+    {
+        uint256 outputLength = outputs.length;
+        result = new OutputToken[](outputLength);
+        unchecked {
+            for (uint256 i = 0; i < outputLength; i++) {
+                result[i] = decay(outputs[i], decayStartTime, decayEndTime);
+            }
+        }
+    }
+
     /// @notice returns a decayed input using the given decay spec and times
     /// @param input The input to decay
     /// @param decayStartTime The time to start decaying
     /// @param decayEndTime The time to end decaying
     /// @return result a decayed input
-    function decay(InputTokenWithRecipient memory input, uint256 decayStartTime, uint256 decayEndTime)
+    function decay(RelayInput memory input, uint256 decayStartTime, uint256 decayEndTime)
         internal
         view
         returns (InputTokenWithRecipient memory result)
     {
-        if (input.amount > input.maxAmount) {
+        if (input.startAmount > input.endAmount) {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedInput = RelayDecayLib.decay(input.amount, input.maxAmount, decayStartTime, decayEndTime);
-        result = InputTokenWithRecipient(input.token, decayedInput, input.maxAmount, input.recipient);
+        uint256 decayedInput = RelayDecayLib.decay(input.startAmount, input.endAmount, decayStartTime, decayEndTime);
+        result = InputTokenWithRecipient(input.token, decayedInput, input.endAmount, input.recipient);
+    }
+
+    /// @notice returns a decayed output using the given decay spec and times
+    /// @param output The output to decay
+    /// @param decayStartTime The time to start decaying
+    /// @param decayEndTime The time to end decaying
+    /// @return result a decayed output
+    function decay(RelayOutput memory output, uint256 decayStartTime, uint256 decayEndTime)
+        internal
+        view
+        returns (OutputToken memory result)
+    {
+        if (output.startAmount < output.endAmount) {
+            revert IncorrectAmounts();
+        }
+
+        uint256 decayedOutput = RelayDecayLib.decay(output.startAmount, output.endAmount, decayStartTime, decayEndTime);
+        result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 }
