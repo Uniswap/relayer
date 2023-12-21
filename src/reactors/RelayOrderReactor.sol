@@ -67,13 +67,32 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             for (uint256 j = 0; j < actionsLength;) {
                 (address target, uint256 value, bytes memory data) =
                     abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success, bytes memory result) = target.call{value: value}(data);
-                if (!success) {
-                    // bubble up all errors, including custom errors which are encoded like functions
-                    assembly {
-                        revert(add(result, 0x20), mload(result))
+                if (target == address(0)) {
+                    // these are rebate calls, so must be encoded a specific way
+                    // this MUST revert if the data is not encoded correctly
+                    (
+                        ERC20 token,
+                        uint256 startAmount,
+                        uint256 endAmount,
+                        uint256 decayStartTime,
+                        uint256 decayEndTime,
+                        address recipient
+                    ) = abi.decode(data, (ERC20, uint256, uint256, uint256, uint256, address));
+                    uint256 decayedAmount = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
+                    // callback to filler
+                    (bool success,) = msg.sender.call{value: value}(data);
+                    // transfer owed tokens
+                    token.safeTransfer(recipient, decayedAmount);
+                } else {
+                    (bool success, bytes memory result) = target.call{value: value}(data);
+                    if (!success) {
+                        // bubble up all errors, including custom errors which are encoded like functions
+                        assembly {
+                            revert(add(result, 0x20), mload(result))
+                        }
                     }
                 }
+
                 unchecked {
                     j++;
                 }
