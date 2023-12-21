@@ -9,8 +9,8 @@ import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {IRelayOrderRebateFiller} from "../interfaces/IRelayOrderRebateFiller.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
+import {InputTokenWithRecipient, RebateOutput, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
@@ -71,19 +71,16 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                 if (target == address(0)) {
                     // these are rebate calls, so must be encoded a specific way
                     // this MUST revert if the data is not encoded correctly
-                    (
-                        ERC20 token,
-                        uint256 startAmount,
-                        uint256 endAmount,
-                        uint256 decayStartTime,
-                        uint256 decayEndTime,
-                        address recipient
-                    ) = abi.decode(data, (ERC20, uint256, uint256, uint256, uint256, address));
-                    uint256 decayedAmount = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
+                    (RebateOutput memory rebateOutput) = abi.decode(data, (RebateOutput));
+                    rebateOutput = RelayDecayLib.decay(rebateOutput);
                     // callback to filler
-                    IRelayOrderRebateFiller(msg.sender).reactorCallback{value: value}(order, data);
+                    IRelayOrderReactorCallback(msg.sender).reactorCallback{value: value}(order, data);
                     // transfer the owed tokens
-                    token.safeTransfer(recipient, decayedAmount);
+                    if (rebateOutput.token.isNative()) {
+                        CurrencyLibrary.transferNative(rebateOutput.recipient, rebateOutput.amount);
+                    } else {
+                        ERC20(rebateOutput.token).safeTransfer(rebateOutput.recipient, rebateOutput.amount);
+                    }
                 } else {
                     (bool success, bytes memory result) = target.call{value: value}(data);
                     if (!success) {
