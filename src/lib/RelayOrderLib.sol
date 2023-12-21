@@ -9,7 +9,7 @@ import {OrderInfoLib} from "UniswapX/src/lib/OrderInfoLib.sol";
 struct RelayInput {
     // The ERC20 token address
     ERC20 token;
-    // The time at which the output start decaying
+    // The time at which the input start decaying
     uint256 decayStartTime;
     // The time at which the price becomes static
     uint256 decayEndTime;
