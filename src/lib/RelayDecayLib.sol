@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
-import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
+import {InputTokenWithRecipient, RebateOutput} from "../base/ReactorStructs.sol";
 
 /// @notice helpers for handling dutch order objects
 library RelayDecayLib {
@@ -81,5 +81,20 @@ library RelayDecayLib {
 
         uint256 decayedInput = RelayDecayLib.decay(input.amount, input.maxAmount, decayStartTime, decayEndTime);
         result = InputTokenWithRecipient(input.token, decayedInput, input.maxAmount, input.recipient);
+    }
+
+    /// @notice returns a decayed rebate output using the given decay spec and times
+    /// @param output The output to decay
+    /// @return result a decayed output
+    function decay(RebateOutput memory output) internal view returns (RebateOutput memory result) {
+        if (output.amount < output.maxAmount) {
+            revert IncorrectAmounts();
+        }
+
+        uint256 decayedOutput =
+            RelayDecayLib.decay(output.amount, output.maxAmount, output.decayStartTime, output.decayEndTime);
+        result = RebateOutput(
+            output.token, output.decayStartTime, output.decayEndTime, decayedOutput, output.maxAmount, output.recipient
+        );
     }
 }

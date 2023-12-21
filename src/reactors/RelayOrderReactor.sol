@@ -9,7 +9,8 @@ import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
+import {InputTokenWithRecipient, RebateOutput, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
@@ -67,13 +68,29 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             for (uint256 j = 0; j < actionsLength;) {
                 (address target, uint256 value, bytes memory data) =
                     abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success, bytes memory result) = target.call{value: value}(data);
-                if (!success) {
-                    // bubble up all errors, including custom errors which are encoded like functions
-                    assembly {
-                        revert(add(result, 0x20), mload(result))
+                if (target == address(0)) {
+                    // these are rebate calls, so must be encoded a specific way
+                    // this MUST revert if the data is not encoded correctly
+                    (RebateOutput memory rebateOutput) = abi.decode(data, (RebateOutput));
+                    rebateOutput = RelayDecayLib.decay(rebateOutput);
+                    // callback to filler
+                    IRelayOrderReactorCallback(msg.sender).reactorCallback{value: value}(order, data);
+                    // transfer the owed tokens
+                    if (rebateOutput.token.isNative()) {
+                        CurrencyLibrary.transferNative(rebateOutput.recipient, rebateOutput.amount);
+                    } else {
+                        ERC20(rebateOutput.token).safeTransfer(rebateOutput.recipient, rebateOutput.amount);
+                    }
+                } else {
+                    (bool success, bytes memory result) = target.call{value: value}(data);
+                    if (!success) {
+                        // bubble up all errors, including custom errors which are encoded like functions
+                        assembly {
+                            revert(add(result, 0x20), mload(result))
+                        }
                     }
                 }
+
                 unchecked {
                     j++;
                 }
