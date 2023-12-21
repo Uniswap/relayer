@@ -9,6 +9,7 @@ import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
+import {IRelayOrderRebateFiller} from "../interfaces/IRelayOrderRebateFiller.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
@@ -80,9 +81,8 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                     ) = abi.decode(data, (ERC20, uint256, uint256, uint256, uint256, address));
                     uint256 decayedAmount = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
                     // callback to filler
-                    // TODO: handle low level call failed?
-                    (bool success,) = msg.sender.call{value: value}(data);
-                    // transfer owed tokens
+                    IRelayOrderRebateFiller(msg.sender).reactorCallback{value: value}(order, data);
+                    // transfer the owed tokens
                     token.safeTransfer(recipient, decayedAmount);
                 } else {
                     (bool success, bytes memory result) = target.call{value: value}(data);
