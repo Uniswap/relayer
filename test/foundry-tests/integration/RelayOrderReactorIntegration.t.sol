@@ -100,10 +100,22 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // at the forked block, 95276229 is the minAmountOut
     function testExecute() public {
         RelayInput[] memory inputTokens = new RelayInput[](2);
-        inputTokens[0] =
-            RelayInput({token: DAI, startAmount: 100 * ONE, endAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] =
-            RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -113,8 +125,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: new RelayOutput[](0)
@@ -147,14 +157,32 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // same as testExecute above, but a rebate is required
     function testExecuteWithRebate() public {
         RelayInput[] memory inputTokens = new RelayInput[](2);
-        inputTokens[0] =
-            RelayInput({token: DAI, startAmount: 100 * ONE, endAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] =
-            RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         RelayOutput[] memory outputTokens = new RelayOutput[](1);
-        outputTokens[0] =
-            RelayOutput({token: address(USDC), startAmount: 5 * USDC_ONE, endAmount: 0 * USDC_ONE, recipient: swapper});
+        outputTokens[0] = RelayOutput({
+            token: address(USDC),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 5 * USDC_ONE,
+            endAmount: 0 * USDC_ONE,
+            recipient: swapper
+        });
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -164,8 +192,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: outputTokens
@@ -210,12 +236,20 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         RelayInput[] memory inputTokens = new RelayInput[](2);
         inputTokens[0] = RelayInput({
             token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             startAmount: 100 * USDC_ONE,
             endAmount: 100 * USDC_ONE,
             recipient: UNIVERSAL_ROUTER
         });
-        inputTokens[1] =
-            RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 95 * ONE;
 
@@ -251,8 +285,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: new RelayOutput[](0)
@@ -295,10 +327,22 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // at the forked block, X is the minAmountOut
     function testExecuteWithNativeAsOutput() public {
         RelayInput[] memory inputTokens = new RelayInput[](2);
-        inputTokens[0] =
-            RelayInput({token: DAI, startAmount: 100 * ONE, endAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] =
-            RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 51651245170979377; // with 5% slipapge at forked block
 
@@ -308,8 +352,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: new RelayOutput[](0)
@@ -346,10 +388,22 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // calldata includes a SWEEP back to them which should cause the transaction to revert
     function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
         RelayInput[] memory inputTokens = new RelayInput[](2);
-        inputTokens[0] =
-            RelayInput({token: DAI, startAmount: 100 * ONE, endAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] =
-            RelayInput({token: USDC, startAmount: 10 * USDC_ONE, endAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -360,8 +414,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: new RelayOutput[](0)

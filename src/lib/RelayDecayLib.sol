@@ -49,75 +49,53 @@ library RelayDecayLib {
 
     /// @notice returns a decayed input array using the given decay spec and times
     /// @param inputs The input array to decay
-    /// @param decayStartTime The time to start decaying
-    /// @param decayEndTime The time to end decaying
     /// @return result a decayed input array
-    function decay(RelayInput[] memory inputs, uint256 decayStartTime, uint256 decayEndTime)
-        internal
-        view
-        returns (InputTokenWithRecipient[] memory result)
-    {
+    function decay(RelayInput[] memory inputs) internal view returns (InputTokenWithRecipient[] memory result) {
         uint256 inputLength = inputs.length;
         result = new InputTokenWithRecipient[](inputLength);
         unchecked {
             for (uint256 i = 0; i < inputLength; i++) {
-                result[i] = decay(inputs[i], decayStartTime, decayEndTime);
+                result[i] = decay(inputs[i]);
             }
         }
     }
 
     /// @notice returns a decayed otuput array using the given decay spec and times
     /// @param outputs The input array to decay
-    /// @param decayStartTime The time to start decaying
-    /// @param decayEndTime The time to end decaying
     /// @return result a decayed input array
-    function decay(RelayOutput[] memory outputs, uint256 decayStartTime, uint256 decayEndTime)
-        internal
-        view
-        returns (OutputToken[] memory result)
-    {
+    function decay(RelayOutput[] memory outputs) internal view returns (OutputToken[] memory result) {
         uint256 outputLength = outputs.length;
         result = new OutputToken[](outputLength);
         unchecked {
             for (uint256 i = 0; i < outputLength; i++) {
-                result[i] = decay(outputs[i], decayStartTime, decayEndTime);
+                result[i] = decay(outputs[i]);
             }
         }
     }
 
     /// @notice returns a decayed input using the given decay spec and times
     /// @param input The input to decay
-    /// @param decayStartTime The time to start decaying
-    /// @param decayEndTime The time to end decaying
     /// @return result a decayed input
-    function decay(RelayInput memory input, uint256 decayStartTime, uint256 decayEndTime)
-        internal
-        view
-        returns (InputTokenWithRecipient memory result)
-    {
+    function decay(RelayInput memory input) internal view returns (InputTokenWithRecipient memory result) {
         if (input.startAmount > input.endAmount) {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedInput = RelayDecayLib.decay(input.startAmount, input.endAmount, decayStartTime, decayEndTime);
+        uint256 decayedInput =
+            RelayDecayLib.decay(input.startAmount, input.endAmount, input.decayStartTime, input.decayEndTime);
         result = InputTokenWithRecipient(input.token, decayedInput, input.endAmount, input.recipient);
     }
 
     /// @notice returns a decayed output using the given decay spec and times
     /// @param output The output to decay
-    /// @param decayStartTime The time to start decaying
-    /// @param decayEndTime The time to end decaying
     /// @return result a decayed output
-    function decay(RelayOutput memory output, uint256 decayStartTime, uint256 decayEndTime)
-        internal
-        view
-        returns (OutputToken memory result)
-    {
+    function decay(RelayOutput memory output) internal view returns (OutputToken memory result) {
         if (output.startAmount < output.endAmount) {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedOutput = RelayDecayLib.decay(output.startAmount, output.endAmount, decayStartTime, decayEndTime);
+        uint256 decayedOutput =
+            RelayDecayLib.decay(output.startAmount, output.endAmount, output.decayStartTime, output.decayEndTime);
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 }

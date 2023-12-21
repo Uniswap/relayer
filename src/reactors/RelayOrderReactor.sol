@@ -176,8 +176,8 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
         resolvedOrder = ResolvedRelayOrder({
             info: order.info,
             actions: order.actions,
-            inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
-            outputs: order.outputs.decay(order.decayStartTime, order.decayEndTime),
+            inputs: order.inputs.decay(),
+            outputs: order.outputs.decay(),
             sig: signedOrder.sig,
             hash: order.hash()
         });
@@ -197,12 +197,24 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
     /// @notice validate the relay order fields
     /// @dev Throws if the order is invalid
     function _validateOrder(RelayOrder memory order) internal pure {
-        if (order.info.deadline < order.decayEndTime) {
-            revert DeadlineBeforeEndTime();
+        uint256 inputsLength = order.inputs.length;
+        uint256 outputsLength = order.outputs.length;
+        for (uint256 i = 0; i < inputsLength; i++) {
+            if (order.info.deadline < order.inputs[i].decayEndTime) {
+                revert DeadlineBeforeEndTime();
+            }
+            if (order.inputs[i].decayEndTime < order.inputs[i].decayStartTime) {
+                revert OrderEndTimeBeforeStartTime();
+            }
         }
 
-        if (order.decayEndTime < order.decayStartTime) {
-            revert OrderEndTimeBeforeStartTime();
+        for (uint256 i = 0; i < outputsLength; i++) {
+            if (order.info.deadline < order.outputs[i].decayEndTime) {
+                revert DeadlineBeforeEndTime();
+            }
+            if (order.outputs[i].decayEndTime < order.outputs[i].decayStartTime) {
+                revert OrderEndTimeBeforeStartTime();
+            }
         }
 
         // TODO: add additional validations related to relayed actions, if desired
