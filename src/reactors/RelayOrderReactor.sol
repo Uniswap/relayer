@@ -80,6 +80,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
                     ) = abi.decode(data, (ERC20, uint256, uint256, uint256, uint256, address));
                     uint256 decayedAmount = RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
                     // callback to filler
+                    // TODO: handle low level call failed?
                     (bool success,) = msg.sender.call{value: value}(data);
                     // transfer owed tokens
                     token.safeTransfer(recipient, decayedAmount);
