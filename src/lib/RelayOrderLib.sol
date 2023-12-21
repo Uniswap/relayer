@@ -9,6 +9,10 @@ import {OrderInfoLib} from "UniswapX/src/lib/OrderInfoLib.sol";
 struct RelayInput {
     // The ERC20 token address
     ERC20 token;
+    // The time at which the output start decaying
+    uint256 decayStartTime;
+    // The time at which the price becomes static
+    uint256 decayEndTime;
     // The amount of tokens at the start of the time period
     uint256 startAmount;
     // The amount of tokens at the end of the time period
@@ -21,6 +25,10 @@ struct RelayInput {
 struct RelayOutput {
     // The ERC20 token address (or native ETH address)
     address token;
+    // The time at which the output start decaying
+    uint256 decayStartTime;
+    // The time at which the price becomes static
+    uint256 decayEndTime;
     // The amount of tokens at the start of the time period
     uint256 startAmount;
     // The amount of tokens at the end of the time period
@@ -33,10 +41,6 @@ struct RelayOutput {
 struct RelayOrder {
     // generic order information
     OrderInfo info;
-    // The time at which the inputs start decaying
-    uint256 decayStartTime;
-    // The time at which price becomes static
-    uint256 decayEndTime;
     // ecnoded actions to execute onchain
     bytes[] actions;
     // The tokens that the swapper will provide when settling the order
@@ -50,10 +54,10 @@ library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes private constant INPUT_TOKEN_TYPE =
-        "RelayInput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
+        "RelayInput(address token,uint256 decayStartTime,uint256 decayEndTime,uint256 startAmount,uint256 endAmount,address recipient)";
 
     bytes private constant OUTPUT_TOKEN_TYPE =
-        "RelayOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
+        "RelayOutput(address token,uint256 decayStartTime,uint256 decayEndTime,uint256 startAmount,uint256 endAmount,address recipient)";
 
     bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
@@ -61,8 +65,6 @@ library RelayOrderLib {
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "RelayOrder(",
         "OrderInfo info,",
-        "uint256 decayStartTime,",
-        "uint256 decayEndTime,",
         "bytes[] actions,",
         "RelayInput[] inputs,",
         "RelayOutput[] outputs)",
@@ -78,13 +80,30 @@ library RelayOrderLib {
 
     /// @notice returns the hash of an input token struct
     function hash(RelayInput memory input) private pure returns (bytes32) {
-        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.startAmount, input.endAmount));
+        return keccak256(
+            abi.encode(
+                INPUT_TOKEN_TYPE_HASH,
+                input.token,
+                input.decayStartTime,
+                input.decayEndTime,
+                input.startAmount,
+                input.endAmount
+            )
+        );
     }
 
     /// @notice returns the hash of an output token struct
     function hash(RelayOutput memory output) private pure returns (bytes32) {
         return keccak256(
-            abi.encode(OUTPUT_TOKEN_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
+            abi.encode(
+                OUTPUT_TOKEN_TYPE_HASH,
+                output.token,
+                output.decayStartTime,
+                output.decayEndTime,
+                output.startAmount,
+                output.endAmount,
+                output.recipient
+            )
         );
     }
 
@@ -124,15 +143,7 @@ library RelayOrderLib {
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(
-                ORDER_TYPE_HASH,
-                order.info.hash(),
-                order.decayStartTime,
-                order.decayEndTime,
-                order.actions,
-                hash(order.inputs),
-                hash(order.outputs)
-            )
+            abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.actions, hash(order.inputs), hash(order.outputs))
         );
     }
 }
