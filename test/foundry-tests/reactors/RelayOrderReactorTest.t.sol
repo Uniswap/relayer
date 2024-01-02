@@ -92,7 +92,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        snapStart("ExecuteSingleWithRebate");
+        snapStart("ExecuteSingle");
         fillContract.execute(signedOrder);
         snapEnd();
 
