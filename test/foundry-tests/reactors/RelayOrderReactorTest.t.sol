@@ -99,8 +99,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractTokenInBefore + 250000000000000000);
     }
 
-    /// @dev Test of a simple execute
-    /// @dev this order has no actions and its inputs decay from -1 ether to 1 ether
+    /// @dev Test of a simple execute with rebate required
+    /// @dev this order has no actions and its inputs decay from 0 ether to 1 ether, and the outputs decay from 1 ether to 0
     function testExecuteSingleWithRebate() public {
         uint256 inputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
