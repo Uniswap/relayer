@@ -39,8 +39,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
-        console2.logBytes32(permit2.DOMAIN_SEPARATOR());
-        console2.log(block.chainid);
 
         reactor = new RelayOrderReactor(permit2);
 
@@ -150,10 +148,12 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         // warp to precisely 25% way through the decay
         vm.warp(block.timestamp + 250);
 
-        vm.expectEmit(true, true, true, false);
-        emit Transfer(address(fillContract), address(reactor), 250000000000000000);
-        vm.expectEmit(true, true, true, false);
-        emit Transfer(address(reactor), swapper, 250000000000000000);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(swapper), address(fillContract), 250000000000000000);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(fillContract), address(reactor), 750000000000000000);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(reactor), swapper, 750000000000000000);
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
