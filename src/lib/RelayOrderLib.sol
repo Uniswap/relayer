@@ -68,9 +68,9 @@ library RelayOrderLib {
         "bytes[] actions,",
         "RelayInput[] inputs,",
         "RelayOutput[] outputs)",
-        INPUT_TOKEN_TYPE,
         OrderInfoLib.ORDER_INFO_TYPE,
-        OUTPUT_TOKEN_TYPE_HASH
+        INPUT_TOKEN_TYPE,
+        OUTPUT_TOKEN_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 

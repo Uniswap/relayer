@@ -84,23 +84,6 @@ contract PermitSignature is Test {
         uint256 privateKey,
         address permit2,
         OrderInfo memory info,
-        address inputToken,
-        uint256 inputAmount,
-        bytes32 typeHash,
-        bytes32 orderHash
-    ) internal view returns (bytes memory sig) {
-        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
-            nonce: info.nonce,
-            deadline: info.deadline
-        });
-        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    }
-
-    function signOrder(
-        uint256 privateKey,
-        address permit2,
-        OrderInfo memory info,
         RelayInput[] memory inputs,
         bytes32 typeHash,
         bytes32 orderHash

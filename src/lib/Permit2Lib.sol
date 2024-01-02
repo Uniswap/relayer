@@ -44,7 +44,7 @@ library Permit2Lib {
         for (uint256 i = 0; i < order.inputs.length; i++) {
             permissions[i] = ISignatureTransfer.TokenPermissions({
                 token: address(order.inputs[i].token),
-                amount: order.inputs[i].amount
+                amount: order.inputs[i].maxAmount
             });
         }
         return ISignatureTransfer.PermitBatchTransferFrom({
