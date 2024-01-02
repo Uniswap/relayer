@@ -79,7 +79,7 @@ contract PermitSignature is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
     }
-    
+
     function signOrder(
         uint256 privateKey,
         address permit2,
