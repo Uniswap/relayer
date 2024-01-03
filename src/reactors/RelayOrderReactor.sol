@@ -22,6 +22,7 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, ReentrancyGuard {
     using SafeTransferLib for ERC20;
+    using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;

@@ -89,10 +89,15 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
         assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
 
-        (uint160 allowance,,) = PERMIT2.allowance(swapper, address(USDC), address(reactor));
-        assertEq(allowance, 0, "reactor must not have allowance for tokens");
-        (allowance,,) = PERMIT2.allowance(swapper, address(DAI), address(reactor));
-        assertEq(allowance, 0, "reactor must not have approval for tokens");
+        // filler and mockFillContractWithRebate approve reactor for output tokens
+        vm.startPrank(filler);
+        DAI.approve(address(reactor), type(uint256).max);
+        USDC.approve(address(reactor), type(uint256).max);
+        vm.stopPrank();
+        vm.startPrank(address(mockFillContractWithRebate));
+        DAI.approve(address(reactor), type(uint256).max);
+        USDC.approve(address(reactor), type(uint256).max);
+        vm.stopPrank();
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
@@ -188,7 +193,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
