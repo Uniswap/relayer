@@ -8,6 +8,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {ResolvedRelayOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
@@ -15,14 +16,12 @@ import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, RelayInput, RelayOutput} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, ReentrancyGuard {
     using SafeTransferLib for ERC20;
-    using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
@@ -153,11 +152,18 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
                 uint256 outputsLength = resolvedOrder.outputs.length;
                 for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-                    output.token.transferFillFromBalance(output.recipient, output.amount);
+                    output.token.transferFill(output.recipient, output.amount);
                 }
 
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
             }
+        }
+
+        // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+        // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
+        // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(msg.sender, address(this).balance);
         }
     }
 
