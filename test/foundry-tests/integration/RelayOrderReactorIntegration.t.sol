@@ -66,7 +66,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         json = vm.readFile(string.concat(root, "/test/foundry-tests/interop.json"));
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2), RELAY_ORDER_REACTOR);
+        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
         mockFillContractWithRebate = new MockFillContractWithRebate(address(reactor));
@@ -89,10 +89,15 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(address(reactor)), 0, "reactor should have no USDC");
         assertEq(DAI.balanceOf(address(reactor)), 0, "reactor should have no DAI");
 
-        (uint160 allowance,,) = PERMIT2.allowance(swapper, address(USDC), address(reactor));
-        assertEq(allowance, 0, "reactor must not have allowance for tokens");
-        (allowance,,) = PERMIT2.allowance(swapper, address(DAI), address(reactor));
-        assertEq(allowance, 0, "reactor must not have approval for tokens");
+        // filler and mockFillContractWithRebate approve reactor for output tokens
+        vm.startPrank(filler);
+        DAI.approve(address(reactor), type(uint256).max);
+        USDC.approve(address(reactor), type(uint256).max);
+        vm.stopPrank();
+        vm.startPrank(address(mockFillContractWithRebate));
+        DAI.approve(address(reactor), type(uint256).max);
+        USDC.approve(address(reactor), type(uint256).max);
+        vm.stopPrank();
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
@@ -121,7 +126,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -188,7 +193,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -281,7 +286,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
@@ -348,7 +353,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_ETH");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -410,7 +415,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters =
             readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_REACTOR_WITH_SWEEP");
-        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+        actions[0] = abi.encode(methodParameters.data, methodParameters.value);
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),

@@ -8,6 +8,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
+import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {ResolvedRelayOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {IRelayOrderReactorCallback} from "../interfaces/IRelayOrderReactorCallback.sol";
@@ -15,7 +16,6 @@ import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, RelayInput, RelayOutput} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
@@ -31,9 +31,11 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
+    address public immutable universalRouter;
 
-    constructor(IPermit2 _permit2) {
+    constructor(IPermit2 _permit2, address _universalRouter) {
         permit2 = _permit2;
+        universalRouter = _universalRouter;
     }
 
     function execute(SignedOrder calldata order) external payable nonReentrant {
@@ -105,9 +107,8 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
             for (uint256 j = 0; j < actionsLength;) {
-                (address target, uint256 value, bytes memory data) =
-                    abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success, bytes memory result) = target.call{value: value}(data);
+                (bytes memory data, uint256 value) = abi.decode(order.actions[j], (bytes, uint256));
+                (bool success, bytes memory result) = universalRouter.call{value: value}(data);
                 if (!success) {
                     // bubble up all errors, including custom errors which are encoded like functions
                     assembly {
@@ -153,11 +154,18 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ReactorErrors, Reentrancy
                 uint256 outputsLength = resolvedOrder.outputs.length;
                 for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-                    output.token.transferFillFromBalance(output.recipient, output.amount);
+                    output.token.transferFill(output.recipient, output.amount);
                 }
 
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
             }
+        }
+
+        // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+        // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
+        // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(msg.sender, address(this).balance);
         }
     }
 

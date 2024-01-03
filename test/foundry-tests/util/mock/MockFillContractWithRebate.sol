@@ -28,16 +28,5 @@ contract MockFillContractWithRebate is IRelayOrderReactorCallback {
     }
 
     /// @notice assume that we already have all output tokens
-    function reactorCallback(ResolvedRelayOrder[] memory resolvedOrders, bytes memory) external {
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
-                OutputToken memory output = resolvedOrders[i].outputs[j];
-                if (output.token.isNative()) {
-                    CurrencyLibrary.transferNative(address(reactor), output.amount);
-                } else {
-                    ERC20(output.token).transfer(address(reactor), output.amount);
-                }
-            }
-        }
-    }
+    function reactorCallback(ResolvedRelayOrder[] memory resolvedOrders, bytes memory) external {}
 }
