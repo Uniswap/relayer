@@ -10,12 +10,13 @@ import {OrderInfo, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
+import {ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
+import {RelayOrderLib, RelayInput, RelayOutput, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {PermitExecutor} from "../../../src/sample-executors/PermitExecutor.sol";
+import {MockFillContractWithRebate} from "../util/mock/MockFillContractWithRebate.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
@@ -43,6 +44,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     address filler;
     RelayOrderReactor reactor;
     PermitExecutor permitExecutor;
+    MockFillContractWithRebate mockFillContractWithRebate;
     string json;
 
     error InvalidNonce();
@@ -67,6 +69,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
+        mockFillContractWithRebate = new MockFillContractWithRebate(address(reactor));
 
         // Swapper max approves permit post for all input tokens
         vm.startPrank(swapper);
@@ -120,13 +123,21 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
     // at the forked block, 95276229 is the minAmountOut
     function testExecute() public {
-        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        inputTokens[0] =
-            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] = InputTokenWithRecipient({
+        RelayInput[] memory inputTokens = new RelayInput[](2);
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
             token: USDC,
-            amount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
             recipient: address(0)
         });
 
@@ -138,10 +149,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens
+            inputs: inputTokens,
+            outputs: new RelayOutput[](0)
         });
 
         SignedOrder memory signedOrder =
@@ -170,21 +180,100 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
+    // same as testExecute above, but a rebate is required
+    function testExecuteWithRebate() public {
+        RelayInput[] memory inputTokens = new RelayInput[](2);
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
+            token: USDC,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        RelayOutput[] memory outputTokens = new RelayOutput[](1);
+        outputTokens[0] = RelayOutput({
+            token: address(USDC),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 5 * USDC_ONE,
+            endAmount: 0 * USDC_ONE,
+            recipient: swapper
+        });
+
+        uint256 amountOutMin = 95 * USDC_ONE;
+
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
+        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            actions: actions,
+            inputs: inputTokens,
+            outputs: outputTokens
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        // fill contract needs enough USDC to pay the rebate
+        vm.prank(WHALE);
+        USDC.transfer(address(mockFillContractWithRebate), 5 * USDC_ONE);
+
+        ERC20 tokenIn = DAI;
+        ERC20 tokenOut = USDC;
+        _checkpointBalances(swapper, address(mockFillContractWithRebate), tokenIn, tokenOut, USDC);
+
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteWithRebate");
+        mockFillContractWithRebate.execute{value: methodParameters.value}(signedOrder);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
+        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
+        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertEq(tokenIn.balanceOf(swapper), swapperInputBalanceStart - 100 * ONE, "Swapper input tokens");
+        assertGe(
+            tokenOut.balanceOf(swapper),
+            // swapper should receive at least the amountOutMin, minus the gas payment, plus any rebate
+            swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE + 5 * USDC_ONE,
+            "Swapper did not receive enough output"
+        );
+        assertEq(
+            tokenOut.balanceOf(address(mockFillContractWithRebate)),
+            fillerGasInputBalanceStart + 10 * USDC_ONE - 5 * USDC_ONE,
+            "filler balance"
+        );
+    }
+
     function testPermitAndExecute() public {
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
         // making a USDC -> DAI swap
-        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        inputTokens[0] = InputTokenWithRecipient({
+        RelayInput[] memory inputTokens = new RelayInput[](2);
+        inputTokens[0] = RelayInput({
             token: USDC,
-            amount: 100 * USDC_ONE,
-            maxAmount: 100 * USDC_ONE,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * USDC_ONE,
+            endAmount: 100 * USDC_ONE,
             recipient: UNIVERSAL_ROUTER
         });
-        inputTokens[1] = InputTokenWithRecipient({
+        inputTokens[1] = RelayInput({
             token: USDC,
-            amount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
             recipient: address(0)
         });
 
@@ -222,10 +311,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens
+            inputs: inputTokens,
+            outputs: new RelayOutput[](0)
         });
 
         SignedOrder memory signedOrder =
@@ -265,13 +353,21 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
     // at the forked block, X is the minAmountOut
     function testExecuteWithNativeAsOutput() public {
-        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        inputTokens[0] =
-            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] = InputTokenWithRecipient({
+        RelayInput[] memory inputTokens = new RelayInput[](2);
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
             token: USDC,
-            amount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
             recipient: address(0)
         });
 
@@ -283,10 +379,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens
+            inputs: inputTokens,
+            outputs: new RelayOutput[](0)
         });
 
         SignedOrder memory signedOrder =
@@ -321,13 +416,21 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // in the case wehre the swapper incorrectly sets the recipient to an address that is not theirs, but the
     // calldata includes a SWEEP back to them which should cause the transaction to revert
     function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
-        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        inputTokens[0] =
-            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] = InputTokenWithRecipient({
+        RelayInput[] memory inputTokens = new RelayInput[](2);
+        inputTokens[0] = RelayInput({
+            token: DAI,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 100 * ONE,
+            endAmount: 100 * ONE,
+            recipient: UNIVERSAL_ROUTER
+        });
+        inputTokens[1] = RelayInput({
             token: USDC,
-            amount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            startAmount: 10 * USDC_ONE,
+            endAmount: 10 * USDC_ONE,
             recipient: address(0)
         });
 
@@ -340,10 +443,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
             actions: actions,
-            inputs: inputTokens
+            inputs: inputTokens,
+            outputs: new RelayOutput[](0)
         });
 
         SignedOrder memory signedOrder =

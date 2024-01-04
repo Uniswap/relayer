@@ -14,7 +14,4 @@ interface ReactorErrors {
 
     /// @notice thrown when an order's end time is before its start time
     error OrderEndTimeBeforeStartTime();
-
-    /// @notice thrown when an order's inputs and outputs both decay
-    error InputAndOutputDecay();
 }
