@@ -92,6 +92,30 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(allowance, 0, "reactor must not have approval for tokens");
     }
 
+    /// @dev Snapshot the gas required for an encoded call
+    /// - must be before the reactor execution since pool state will have changed
+    /// - since our generated calldata assumes that the router has custody of the tokens, we must transfer them here
+    function _snapshotClassicSwapCall(
+        ERC20 inputToken,
+        uint256 inputAmount,
+        MethodParameters memory methodParameters,
+        string memory testName
+    ) internal {
+        uint256 snapshot = vm.snapshot();
+
+        vm.startPrank(swapper);
+        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
+
+        snapStart(string.concat("RelayOrderReactorIntegrationTest-", testName, "-ClassicSwap"));
+        (bool success,) = UNIVERSAL_ROUTER.call{value: methodParameters.value}(methodParameters.data);
+        snapEnd();
+
+        require(success, "call failed");
+        vm.stopPrank();
+
+        vm.revertTo(snapshot);
+    }
+
     // swapper creates one order containing a universal router swap for 100 DAI -> USDC
     // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
     // at the forked block, 95276229 is the minAmountOut
@@ -125,7 +149,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
+
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, USDC);
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
@@ -209,6 +235,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = DAI;
         // in this case, gas payment will go to executor (msg.sender)
         _checkpointBalances(swapper2, address(permitExecutor), tokenIn, tokenOut, USDC);
+        _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
@@ -271,6 +298,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         routerInputBalanceStart = tokenIn.balanceOf(UNIVERSAL_ROUTER);
         routerOutputBalanceStart = UNIVERSAL_ROUTER.balance;
         fillerGasInputBalanceStart = USDC.balanceOf(filler);
+
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteWithNativeAsOutput");
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
