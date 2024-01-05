@@ -11,7 +11,6 @@ import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
-import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
@@ -22,7 +21,6 @@ import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
-    using Permit2Lib for ResolvedRelayOrder;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
     using RelayDecayLib for InputTokenWithRecipient[];
@@ -34,13 +32,12 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         permit2 = _permit2;
     }
 
+    // write execute such that we prepare,execute, and fill per order
     function execute(SignedOrder calldata order) external payable nonReentrant {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
         resolvedOrders[0] = resolve(order);
 
-        _prepare(resolvedOrders);
-        _execute(resolvedOrders);
-        _fill(resolvedOrders);
+        _handleResolvedOrders(resolvedOrders);
     }
 
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
@@ -53,68 +50,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             }
         }
 
-        _prepare(resolvedOrders);
-        _execute(resolvedOrders);
-        _fill(resolvedOrders);
-    }
-
-    function _execute(ResolvedRelayOrder[] memory orders) internal {
-        uint256 ordersLength = orders.length;
-        // actions are encoded as (address target, uint256 value, bytes data)[]
-        for (uint256 i = 0; i < ordersLength;) {
-            ResolvedRelayOrder memory order = orders[i];
-            uint256 actionsLength = order.actions.length;
-            for (uint256 j = 0; j < actionsLength;) {
-                (address target, uint256 value, bytes memory data) =
-                    abi.decode(order.actions[j], (address, uint256, bytes));
-                (bool success, bytes memory result) = target.call{value: value}(data);
-                if (!success) {
-                    // bubble up all errors, including custom errors which are encoded like functions
-                    assembly {
-                        revert(add(result, 0x20), mload(result))
-                    }
-                }
-                unchecked {
-                    j++;
-                }
-            }
-            unchecked {
-                i++;
-            }
-        }
-    }
-
-    /// @notice validates and transfers input tokens in preparation for order fill
-    /// @param orders The orders to prepare
-    function _prepare(ResolvedRelayOrder[] memory orders) internal {
-        uint256 ordersLength = orders.length;
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory order = orders[i];
-
-                order.validate(msg.sender);
-
-                // Since relay order inputs specify recipients we don't pass in recipient here
-                transferInputTokens(order);
-            }
-        }
-    }
-
-    /// @notice emits a Fill event for each order
-    /// @notice all output token checks must be done in the encoded actions within the order
-    /// @param orders The orders that have been filled
-    function _fill(ResolvedRelayOrder[] memory orders) internal {
-        uint256 ordersLength = orders.length;
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory resolvedOrder = orders[i];
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
-            }
-        }
-    }
-
-    receive() external payable {
-        // receive native asset to support native output
+        _handleResolvedOrders(resolvedOrders);
     }
 
     function resolve(SignedOrder calldata signedOrder)
@@ -134,28 +70,39 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         });
     }
 
-    function transferInputTokens(ResolvedRelayOrder memory order) internal {
-        permit2.permitWitnessTransferFrom(
-            order.toPermit(),
-            order.transferDetails(),
-            order.info.swapper,
-            order.hash,
-            RelayOrderLib.PERMIT2_ORDER_TYPE,
-            order.sig
-        );
-    }
-
     /// @notice validate the relay order fields
     /// @dev Throws if the order is invalid
-    function _validateOrder(RelayOrder memory order) internal pure {
+    function _validateOrder(RelayOrder memory order) private view {
         if (order.info.deadline < order.decayEndTime) {
             revert DeadlineBeforeEndTime();
+        }
+
+        if (block.timestamp > order.info.deadline) {
+            revert DeadlinePassed();
         }
 
         if (order.decayEndTime < order.decayStartTime) {
             revert OrderEndTimeBeforeStartTime();
         }
 
+        if (address(this) != address(order.info.reactor)) {
+            revert InvalidReactor();
+        }
         // TODO: add additional validations related to relayed actions, if desired
+    }
+
+    function _handleResolvedOrders(ResolvedRelayOrder[] memory resolvedOrders) private {
+        unchecked {
+            for (uint256 i = 0; i < resolvedOrders.length; i++) {
+                ResolvedRelayOrder memory order = resolvedOrders[i];
+                order.transferInputTokens(permit2); // meh I don't like that you pass the address :/
+                order.executeActions();
+                emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
+            }
+        }
+    }
+
+    receive() external payable {
+        // receive native asset to support native output
     }
 }
