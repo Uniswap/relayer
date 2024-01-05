@@ -104,9 +104,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         uint256 snapshot = vm.snapshot();
 
         vm.startPrank(swapper);
-        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
 
         snapStart(string.concat("RelayOrderReactorIntegrationTest-", testName, "-ClassicSwap"));
+        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
         (bool success,) = UNIVERSAL_ROUTER.call{value: methodParameters.value}(methodParameters.data);
         snapEnd();
 
