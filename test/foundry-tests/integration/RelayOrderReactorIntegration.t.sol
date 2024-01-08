@@ -80,6 +80,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         DAI.transfer(swapper2, 1000 * ONE);
         USDC.transfer(swapper, 1000 * USDC_ONE);
         USDC.transfer(swapper2, 1000 * USDC_ONE);
+        // Fund fillers some dust to get dirty writes
+        DAI.transfer(filler, 1 * ONE);
+        USDC.transfer(filler, 1 * USDC_ONE);
         vm.stopPrank();
 
         // initial assumptions
