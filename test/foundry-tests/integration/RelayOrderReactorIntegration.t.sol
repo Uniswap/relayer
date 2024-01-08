@@ -177,12 +177,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] = InputTokenWithRecipient({
-            token: DAI,
-            amount: 10 * ONE,
-            maxAmount: 10 * ONE,
-            recipient: address(0)
-        });
+        inputTokens[1] =
+            InputTokenWithRecipient({token: DAI, amount: 10 * ONE, maxAmount: 10 * ONE, recipient: address(0)});
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -223,7 +219,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         );
         assertEq(DAI.balanceOf((filler)), fillerGasInputBalanceStart + 10 * ONE, "filler balance");
     }
-
 
     function testPermitAndExecute() public {
         // this swapper has not yet approved the P2 contract
