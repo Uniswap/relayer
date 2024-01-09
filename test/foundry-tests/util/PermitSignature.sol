@@ -7,7 +7,6 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {RelayOrder, RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {OrderInfo, InputToken} from "UniswapX/src/base/ReactorStructs.sol";
-import {InputTokenWithRecipient} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using RelayOrderLib for RelayOrder;
@@ -81,53 +80,63 @@ contract PermitSignature is Test {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    function signOrder(
-        uint256 privateKey,
-        address permit2,
-        OrderInfo memory info,
-        address inputToken,
-        uint256 inputAmount,
-        bytes32 typeHash,
-        bytes32 orderHash
-    ) internal view returns (bytes memory sig) {
-        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
-            nonce: info.nonce,
-            deadline: info.deadline
-        });
-        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    }
+    // function signOrder(
+    //     uint256 privateKey,
+    //     address permit2,
+    //     OrderInfo memory info,
+    //     address inputToken,
+    //     uint256 inputAmount,
+    //     bytes32 typeHash,
+    //     bytes32 orderHash
+    // ) internal view returns (bytes memory sig) {
+    //     ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+    //         permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
+    //         nonce: info.nonce,
+    //         deadline: info.deadline
+    //     });
+    //     return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
+    // }
 
-    function signOrder(
-        uint256 privateKey,
-        address permit2,
-        OrderInfo memory info,
-        InputTokenWithRecipient[] memory inputs,
-        bytes32 typeHash,
-        bytes32 orderHash
-    ) internal view returns (bytes memory sig) {
-        ISignatureTransfer.TokenPermissions[] memory permissions =
-            new ISignatureTransfer.TokenPermissions[](inputs.length);
-        for (uint256 i = 0; i < inputs.length; i++) {
-            permissions[i] =
-                ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].amount});
-        }
+    // function signOrder(
+    //     uint256 privateKey,
+    //     address permit2,
+    //     OrderInfo memory info,
+    //     InputTokenWithRecipient[] memory inputs,
+    //     bytes32 typeHash,
+    //     bytes32 orderHash
+    // ) internal view returns (bytes memory sig) {
+    //     ISignatureTransfer.TokenPermissions[] memory permissions =
+    //         new ISignatureTransfer.TokenPermissions[](inputs.length);
+    //     for (uint256 i = 0; i < inputs.length; i++) {
+    //         permissions[i] =
+    //             ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].amount});
+    //     }
 
-        ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
-            permitted: permissions,
-            nonce: info.nonce,
-            deadline: info.deadline
-        });
-        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    }
+    //     ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
+    //         permitted: permissions,
+    //         nonce: info.nonce,
+    //         deadline: info.deadline
+    //     });
+    //     return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
+    // }
 
     function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
         internal
         view
         returns (bytes memory sig)
     {
-        return signOrder(privateKey, permit2, order.info, order.inputs, RELAY_ORDER_TYPE_HASH, order.hash());
+        return getPermitSignature(
+            privateKey, permit2, order.permit, address(order.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
+        );
     }
+
+    // function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
+    //     internal
+    //     view
+    //     returns (bytes memory sig)
+    // {
+    //     return signOrder(privateKey, permit2, order.info, order.inputs, RELAY_ORDER_TYPE_HASH, order.hash());
+    // }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, NAME_HASH, block.chainid, permit2));
@@ -139,5 +148,23 @@ contract PermitSignature is Test {
         returns (bytes32)
     {
         return keccak256(abi.encode(TOKEN_PERMISSIONS_TYPEHASH, permitted));
+    }
+
+    /// @notice Uses default values for deadline = block.timestamp + 100 and nonce = 0
+    function buildPermitBatchTransferFrom(address[] memory tokens, uint256[] memory amounts)
+        internal
+        view
+        returns (ISignatureTransfer.PermitBatchTransferFrom memory)
+    {
+        ISignatureTransfer.TokenPermissions[] memory permitted =
+            new ISignatureTransfer.TokenPermissions[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            permitted[i] = ISignatureTransfer.TokenPermissions({token: tokens[i], amount: amounts[i]});
+        }
+        return ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permitted,
+            nonce: 0,
+            deadline: block.timestamp + 100
+        });
     }
 }

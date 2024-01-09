@@ -5,15 +5,16 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SignedOrder, OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {InputTokenWithRecipient, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedRelayOrder, RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
-import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
+import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
-import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
+
+import "forge-std/console2.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
@@ -23,16 +24,14 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     using CurrencyLibrary for address;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
-    using RelayDecayLib for InputTokenWithRecipient[];
-
     /// @notice permit2 address used for token transfers and signature verification
+
     IPermit2 public immutable permit2;
 
     constructor(IPermit2 _permit2) {
         permit2 = _permit2;
     }
 
-    // write execute such that we prepare,execute, and fill per order
     function execute(SignedOrder calldata order) external payable nonReentrant {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
         resolvedOrders[0] = resolve(order);
@@ -53,53 +52,30 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         _handleResolvedOrders(resolvedOrders);
     }
 
-    function resolve(SignedOrder calldata signedOrder)
-        internal
-        view
-        returns (ResolvedRelayOrder memory resolvedOrder)
-    {
-        RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
-        _validateOrder(order);
+    function _handleResolvedOrders(ResolvedRelayOrder[] memory orders) private {
+        unchecked {
+            for (uint256 i = 0; i < orders.length; i++) {
+                ResolvedRelayOrder memory order = orders[i];
+                order.transferInputTokens(permit2);
+                order.executeActions(); // passing the whole order in? would be nice to not pass all the extra unrelated info in
+                emit Fill(order.hash, msg.sender, order.swapper, order.permit.nonce);
+            }
+        }
+    }
 
-        resolvedOrder = ResolvedRelayOrder({
-            info: order.info,
+    function resolve(SignedOrder memory signedOrder) internal returns (ResolvedRelayOrder memory resolvedOrder) {
+        // Validate the order before resolving.
+        RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
+        order.validate();
+
+        return ResolvedRelayOrder({
+            swapper: order.swapper,
             actions: order.actions,
-            inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
+            permit: order.permit,
+            details: order.transferDetails(),
             sig: signedOrder.sig,
             hash: order.hash()
         });
-    }
-
-    /// @notice validate the relay order fields
-    /// @dev Throws if the order is invalid
-    function _validateOrder(RelayOrder memory order) private view {
-        if (order.info.deadline < order.decayEndTime) {
-            revert DeadlineBeforeEndTime();
-        }
-
-        if (block.timestamp > order.info.deadline) {
-            revert DeadlinePassed();
-        }
-
-        if (order.decayEndTime < order.decayStartTime) {
-            revert OrderEndTimeBeforeStartTime();
-        }
-
-        if (address(this) != address(order.info.reactor)) {
-            revert InvalidReactor();
-        }
-        // TODO: add additional validations related to relayed actions, if desired
-    }
-
-    function _handleResolvedOrders(ResolvedRelayOrder[] memory resolvedOrders) private {
-        unchecked {
-            for (uint256 i = 0; i < resolvedOrders.length; i++) {
-                ResolvedRelayOrder memory order = resolvedOrders[i];
-                order.transferInputTokens(permit2); // meh I don't like that you pass the address :/
-                order.executeActions();
-                emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
-            }
-        }
     }
 
     receive() external payable {

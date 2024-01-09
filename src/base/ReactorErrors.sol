@@ -13,4 +13,7 @@ interface ReactorErrors {
 
     /// @notice thrown if the order has expired
     error DeadlinePassed();
+
+    /// @notice thrown if the array lengths are mismatched for various inputs
+    error LengthMismatch();
 }
