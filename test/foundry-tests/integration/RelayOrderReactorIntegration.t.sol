@@ -107,9 +107,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         uint256 snapshot = vm.snapshot();
 
         vm.startPrank(swapper);
-        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
 
         snapStart(string.concat("RelayOrderReactorIntegrationTest-", testName, "-ClassicSwap"));
+        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
         (bool success,) = UNIVERSAL_ROUTER.call{value: methodParameters.value}(methodParameters.data);
         snapEnd();
 
@@ -119,10 +119,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.revertTo(snapshot);
     }
 
-    // swapper creates one order containing a universal router swap for 100 DAI -> USDC
-    // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
-    // at the forked block, 95276229 is the minAmountOut
-    function testExecute() public {
+    // Testing the average case for gas benchmarking purposes
+    // - dirty write for P2 nonce
+    // - filler has dust of input token
+    function testExecuteAverageCase() public {
+        // simulate that nonce 0 has already been used
+        vm.prank(swapper);
+        PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
+
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
@@ -140,7 +144,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
@@ -154,10 +158,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = USDC;
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, USDC);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteAverageCase");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteAverageCase");
         reactor.execute{value: methodParameters.value}(signedOrder);
         snapEnd();
 
@@ -173,7 +177,15 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-    function testExecuteSameToken() public {
+    // Testing the best case for gas benchmarking purposes
+    // - input tokens are the same
+    // - dirty write for P2 nonce
+    // - filler has dust of input token
+    function testExecuteBestCase() public {
+        // simulate that nonce 0 has already been used
+        vm.prank(swapper);
+        PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
+
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
@@ -187,7 +199,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
@@ -201,10 +213,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = USDC;
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, DAI);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteSameToken");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteBestCase");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteBestCase");
         reactor.execute{value: methodParameters.value}(signedOrder);
         snapEnd();
 
@@ -220,6 +232,66 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(DAI.balanceOf((filler)), fillerGasInputBalanceStart + 10 * ONE, "filler balance");
     }
 
+    // Testing the average case for gas benchmarking purposes
+    // - filler has NO dust of input token
+    function testExecuteWorstCase() public {
+        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
+        inputTokens[0] =
+            InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputTokens[1] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        uint256 amountOutMin = 95 * USDC_ONE;
+
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
+        actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputTokens
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        ERC20 tokenIn = DAI;
+        ERC20 tokenOut = USDC;
+
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteWorstCase");
+
+        vm.startPrank(filler);
+        USDC.transfer(WHALE, USDC.balanceOf(filler));
+        vm.stopPrank();
+        assertEq(USDC.balanceOf(filler), 0, "filler balance");
+
+        _checkpointBalances(swapper, filler, tokenIn, tokenOut, USDC);
+
+        vm.prank(filler);
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteWorstCase");
+        reactor.execute{value: methodParameters.value}(signedOrder);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
+        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
+        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertEq(tokenIn.balanceOf(swapper), swapperInputBalanceStart - 100 * ONE, "Swapper input tokens");
+        assertGe(
+            tokenOut.balanceOf(swapper),
+            swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE,
+            "Swapper did not receive enough output"
+        );
+        assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
+    }
+
+    // A 2612 permit is executed before the relay order
     function testPermitAndExecute() public {
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
@@ -311,9 +383,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         );
     }
 
-    // swapper creates one order containing a universal router swap for 100 DAI -> ETH
-    // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
-    // at the forked block, X is the minAmountOut
+    // Testing a basic relay order where the swap's output is native ETH
     function testExecuteWithNativeAsOutput() public {
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
