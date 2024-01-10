@@ -235,6 +235,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // Testing the average case for gas benchmarking purposes
     // - filler has NO dust of input token
     function testExecuteWorstCase() public {
+        vm.startPrank(filler);
+        USDC.transfer(WHALE, USDC.balanceOf(filler));
+        vm.stopPrank();
+        assertEq(USDC.balanceOf(filler), 0, "filler balance");
+
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
@@ -252,7 +257,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
@@ -266,12 +271,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = USDC;
 
         _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteWorstCase");
-
-        vm.startPrank(filler);
-        USDC.transfer(WHALE, USDC.balanceOf(filler));
-        vm.stopPrank();
-        assertEq(USDC.balanceOf(filler), 0, "filler balance");
-
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, USDC);
 
         vm.prank(filler);
