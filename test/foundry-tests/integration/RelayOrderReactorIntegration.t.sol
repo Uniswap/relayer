@@ -146,7 +146,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
@@ -204,7 +206,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
