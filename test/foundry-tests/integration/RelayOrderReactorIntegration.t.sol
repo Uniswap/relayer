@@ -80,9 +80,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         DAI.transfer(swapper2, 1000 * ONE);
         USDC.transfer(swapper, 1000 * USDC_ONE);
         USDC.transfer(swapper2, 1000 * USDC_ONE);
-        // Fund fillers some dust to get dirty writes
-        DAI.transfer(filler, 1 * ONE);
-        USDC.transfer(filler, 1 * USDC_ONE);
         vm.stopPrank();
 
         // initial assumptions
@@ -123,6 +120,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // - dirty write for P2 nonce
     // - filler has dust of input token
     function testExecuteAverageCase() public {
+        // Fund fillers some dust to get dirty writes
+        /// @dev there are some extra savings from loading the token contract here (~3k) that should be ignored.
+        ///      the relative difference vs. classic should be the same though.
+        vm.prank(WHALE);
+        USDC.transfer(filler, 1);
         // simulate that nonce 0 has already been used
         vm.prank(swapper);
         PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
@@ -182,6 +184,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // - dirty write for P2 nonce
     // - filler has dust of input token
     function testExecuteBestCase() public {
+        // Fund fillers some dust to get dirty writes
+        vm.prank(WHALE);
+        DAI.transfer(filler, 1);
         // simulate that nonce 0 has already been used
         vm.prank(swapper);
         PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
@@ -235,11 +240,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // Testing the average case for gas benchmarking purposes
     // - filler has NO dust of input token
     function testExecuteWorstCase() public {
-        vm.startPrank(filler);
-        USDC.transfer(WHALE, USDC.balanceOf(filler));
-        vm.stopPrank();
-        assertEq(USDC.balanceOf(filler), 0, "filler balance");
-
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
