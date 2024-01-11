@@ -19,16 +19,6 @@ struct RelayOrder {
     bytes[] actions;
 }
 
-// /// @dev Note that a user still signs over a spender address
-// struct PermitBatchTransferFrom {
-//     // the tokens and corresponding amounts permitted for a transfer
-//     TokenPermissions[] permitted;
-//     // a unique value for every token owner's signature to prevent signature replays
-//     uint256 nonce;
-//     // deadline on the permit signature
-//     uint256 deadline;
-// }
-
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
 struct OrderInfo {
@@ -45,24 +35,6 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-// /// @dev Note that a user still signs over a spender address
-// struct PermitBatchTransferFrom {
-//     // the tokens and corresponding amounts permitted for a transfer
-//     TokenPermissions[] permitted;
-//     // a unique value for every token owner's signature to prevent signature replays
-//     uint256 nonce;
-//     // deadline on the permit signature
-//     uint256 deadline;
-// }
-
-/// @notice The token and amount details for a transfer signed in the permit transfer signature
-struct TokenPermissions {
-    // ERC20 token address
-    address token;
-    // the maximum amount that can be spent
-    uint256 amount;
-}
-
 /// @notice Every RelayOrder input is defined by a token, recipient,
 /// and amounts that define the start and end amounts on the decay curve.
 struct Input {
@@ -71,13 +43,6 @@ struct Input {
     uint256 startAmount;
     uint256 maxAmount;
 }
-
-// struct SignatureTransferDetails {
-//     // recipient address
-//     address to;
-//     // spender requested amount
-//     uint256 requestedAmount;
-// }
 
 struct ResolvedRelayOrder {
     address swapper;

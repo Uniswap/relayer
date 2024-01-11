@@ -64,24 +64,18 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         }
     }
 
-    function resolve(SignedOrder memory signedOrder) internal returns (ResolvedRelayOrder memory resolvedOrder) {
+    function resolve(SignedOrder memory signedOrder) internal view returns (ResolvedRelayOrder memory resolvedOrder) {
         // Validate the order before resolving.
         RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
 
-        (
-            ISignatureTransfer.PermitBatchTransferFrom memory permit,
-            ISignatureTransfer.SignatureTransferDetails[] memory details,
-            bytes32 orderHash
-        ) = order.transformAndDecay();
-
         return ResolvedRelayOrder({
             swapper: order.info.swapper,
             actions: order.actions,
-            permit: permit,
-            details: details,
+            permit: order.toPermit(),
+            details: order.toTransferDetails(),
             sig: signedOrder.sig,
-            hash: orderHash
+            hash: order.hash()
         });
     }
 

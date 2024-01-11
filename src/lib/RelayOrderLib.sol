@@ -29,12 +29,7 @@ library RelayOrderLib {
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
 
-    function validate(RelayOrder memory order) internal {
-        // if (
-        //     order.startAmounts.length != order.recipients.length
-        //         || order.startAmounts.length != order.permit.permitted.length
-        // ) revert ReactorErrors.LengthMismatch();
-
+    function validate(RelayOrder memory order) internal view {
         if (order.info.deadline < order.decayEndTime) {
             revert ReactorErrors.DeadlineBeforeEndTime();
         }
@@ -52,70 +47,68 @@ library RelayOrderLib {
         }
     }
 
-    /// @notice Transforms data from the RelayOrder type into necessary structs and arrays needed for the permit2 call and the order hash.
-    /// @notice PermitBatchTransferFrom data is reconstructed from token and maxAmount details in the input
-    /// @notice TransferDetails data is reconstructed from decaying the order.inputs
-    /// @notice The order hash is reconstructed by constructing the amounts and recipients into standalone arrays
-    /// @return The permit information as PermitBatchTransferFrom from the token and maxAmount details
-    /// @return The transfer details, using the resolved input amount calculated from the decay
-    /// @return The order hash
-    function transformAndDecay(RelayOrder memory order)
+    function toPermit(RelayOrder memory order)
         internal
-        returns (
-            ISignatureTransfer.PermitBatchTransferFrom memory permit,
-            ISignatureTransfer.SignatureTransferDetails[] memory details,
-            bytes32 orderHash
-        )
+        pure
+        returns (ISignatureTransfer.PermitBatchTransferFrom memory permit)
     {
         uint256 inputLength = order.inputs.length;
         // Build TokenPermissions array with the maxValue
         ISignatureTransfer.TokenPermissions[] memory permissions = new ISignatureTransfer.TokenPermissions[](
             inputLength
         );
-        // Build TransferDetails with the final resolved amount
-        details = new ISignatureTransfer.SignatureTransferDetails[](
-            inputLength
-        );
-
-        // Build array of startAmounts, needed to properly hash the witness.
-        uint256[] memory startAmounts = new uint256[](inputLength);
-
-        // Build array of recipients, needed to properly hash witness.
-        address[] memory recipients = new address[](inputLength);
 
         for (uint256 i = 0; i < inputLength; i++) {
             Input memory input = order.inputs[i];
             permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
+        }
+
+        return ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permissions,
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+    }
+
+    /// @notice The requestedAmount is built from the decayed/resolved amount.
+    function toTransferDetails(RelayOrder memory order)
+        internal
+        view
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
+    {
+        uint256 inputLength = order.inputs.length;
+        // Build TransferDetails with the final resolved amount
+        details = new ISignatureTransfer.SignatureTransferDetails[](inputLength);
+
+        for (uint256 i = 0; i < inputLength; i++) {
+            Input memory input = order.inputs[i];
             details[i] = ISignatureTransfer.SignatureTransferDetails({
                 to: input.recipient,
                 requestedAmount: RelayDecayLib.decay(
                     input.startAmount, input.maxAmount, order.decayStartTime, order.decayEndTime
                     )
             });
-            startAmounts[i] = input.startAmount;
-            recipients[i] = input.recipient;
         }
 
-        permit = ISignatureTransfer.PermitBatchTransferFrom({
-            permitted: permissions,
-            nonce: order.info.nonce,
-            deadline: order.info.deadline
-        });
-
-        orderHash = order.hash(startAmounts, recipients);
-
-        return (permit, details, orderHash);
+        return details;
     }
 
     /// @notice hash the given order
     /// @param order the order to hash
-    /// @dev the permit field in the RelayOrder is not included in the witness hash because it is already signed over
+    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
     /// @return the eip-712 order hash
-    function hash(RelayOrder memory order, uint256[] memory startAmounts, address[] memory recipients)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function hash(RelayOrder memory order) internal pure returns (bytes32) {
+        uint256 inputLength = order.inputs.length;
+        // Build an array for the startAmounts and recipients.
+        uint256[] memory startAmounts = new uint256[](inputLength);
+        address[] memory recipients = new address[](inputLength);
+
+        for (uint256 i = 0; i < inputLength; i++) {
+            Input memory input = order.inputs[i];
+            startAmounts[i] = input.startAmount;
+            recipients[i] = input.recipient;
+        }
+
         return keccak256(
             abi.encode(
                 RELAY_ORDER_TYPEHASH,
