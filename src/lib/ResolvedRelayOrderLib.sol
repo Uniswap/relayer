@@ -9,12 +9,12 @@ import "forge-std/console2.sol";
 
 library ResolvedRelayOrderLib {
     function transferInputTokens(ResolvedRelayOrder memory order, IPermit2 permit2) internal {
-        // console2.log("permit2Call");
-        // uint256 gasLeft = gasleft();
+        console2.log("permit2Call");
+        uint256 gasLeft = gasleft();
         permit2.permitWitnessTransferFrom(
             order.permit, order.details, order.swapper, order.hash, RelayOrderLib.PERMIT2_ORDER_TYPE, order.sig
         );
-        // console2.log(gasLeft - gasleft());
+        console2.log(gasLeft - gasleft());
     }
 
     function executeActions(ResolvedRelayOrder memory order) internal {
@@ -22,10 +22,10 @@ library ResolvedRelayOrderLib {
         uint256 actionsLength = order.actions.length;
         for (uint256 i = 0; i < actionsLength;) {
             (address target, uint256 value, bytes memory data) = abi.decode(order.actions[i], (address, uint256, bytes));
-            //console2.log("action call");
-            //uint256 gasLeft = gasleft();
+            console2.log("action call");
+            uint256 gasLeft = gasleft();
             (bool success, bytes memory result) = target.call{value: value}(data);
-            //console2.log(gasLeft - gasleft());
+            console2.log(gasLeft - gasleft());
             if (!success) {
                 // bubble up all errors, including custom errors which are encoded like functions
                 assembly {

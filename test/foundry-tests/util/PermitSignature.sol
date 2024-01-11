@@ -16,35 +16,11 @@ contract PermitSignature is Test {
 
     bytes32 internal constant TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
 
-    string constant TYPEHASH_STUB =
-        "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,";
-
     string public constant _PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB =
         "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,";
 
     bytes32 constant RELAY_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(_PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB, RelayOrderLib.PERMIT2_ORDER_TYPE));
-
-    function getPermitSignature(
-        uint256 privateKey,
-        address permit2,
-        ISignatureTransfer.PermitTransferFrom memory permit,
-        address spender,
-        bytes32 typeHash,
-        bytes32 witness
-    ) internal view returns (bytes memory sig) {
-        bytes32 msgHash = ECDSA.toTypedDataHash(
-            _domainSeparatorV4(permit2),
-            keccak256(
-                abi.encode(
-                    typeHash, _hashTokenPermissions(permit.permitted), spender, permit.nonce, permit.deadline, witness
-                )
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
-        sig = bytes.concat(r, s, bytes1(v));
-    }
 
     function getPermitSignature(
         uint256 privateKey,
@@ -80,63 +56,15 @@ contract PermitSignature is Test {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    // function signOrder(
-    //     uint256 privateKey,
-    //     address permit2,
-    //     OrderInfo memory info,
-    //     address inputToken,
-    //     uint256 inputAmount,
-    //     bytes32 typeHash,
-    //     bytes32 orderHash
-    // ) internal view returns (bytes memory sig) {
-    //     ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-    //         permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
-    //         nonce: info.nonce,
-    //         deadline: info.deadline
-    //     });
-    //     return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    // }
-
-    // function signOrder(
-    //     uint256 privateKey,
-    //     address permit2,
-    //     OrderInfo memory info,
-    //     InputTokenWithRecipient[] memory inputs,
-    //     bytes32 typeHash,
-    //     bytes32 orderHash
-    // ) internal view returns (bytes memory sig) {
-    //     ISignatureTransfer.TokenPermissions[] memory permissions =
-    //         new ISignatureTransfer.TokenPermissions[](inputs.length);
-    //     for (uint256 i = 0; i < inputs.length; i++) {
-    //         permissions[i] =
-    //             ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].amount});
-    //     }
-
-    //     ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
-    //         permitted: permissions,
-    //         nonce: info.nonce,
-    //         deadline: info.deadline
-    //     });
-    //     return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
-    // }
-
     function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
         internal
         view
         returns (bytes memory sig)
     {
         return getPermitSignature(
-            privateKey, permit2, order.permit, address(order.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
+            privateKey, permit2, order.toPermit(), address(order.info.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
         );
     }
-
-    // function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
-    //     internal
-    //     view
-    //     returns (bytes memory sig)
-    // {
-    //     return signOrder(privateKey, permit2, order.info, order.inputs, RELAY_ORDER_TYPE_HASH, order.hash());
-    // }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, NAME_HASH, block.chainid, permit2));

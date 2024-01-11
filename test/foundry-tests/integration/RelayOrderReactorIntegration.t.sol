@@ -6,11 +6,11 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test, stdJson} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {OrderInfo, SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
+import {ResolvedRelayOrder, Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
@@ -126,47 +126,34 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // order contains two inputs: DAI for the swap and USDC as gas payment for fillers
     // at the forked block, 95276229 is the minAmountOut
     function testExecuteL() public {
-        // Build the permit for DAI and USDC.
-        address[] memory tokens = AddressBuilder.fill(1, address(DAI)).push(address(USDC));
-        uint256[] memory maxPermittedAmounts = AmountBuilder.fill(1, 100 * ONE).push(10 * USDC_ONE);
-        ISignatureTransfer.PermitBatchTransferFrom memory permit =
-            buildPermitBatchTransferFrom(tokens, maxPermittedAmounts);
+        Input[] memory inputs = new Input[](2);
+        inputs[0] =
+            Input({token: address(DAI), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputs[1] = Input({
+            token: address(USDC),
+            startAmount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(filler)
+        });
 
-        // Build the full relay order.
-        address[] memory recipients = AddressBuilder.fill(1, UNIVERSAL_ROUTER).push(address(filler));
-        uint256[] memory startAmounts = AmountBuilder.fill(1, 100 * ONE).push(10 * USDC_ONE);
-
-        // InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        // inputTokens[0] =
-        //     InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        // inputTokens[1] = InputTokenWithRecipient({
-        //     token: USDC,
-        //     amount: 10 * USDC_ONE,
-        //     maxAmount: 10 * USDC_ONE,
-        //     recipient: address(0)
-        // });
+        OrderInfo memory info = OrderInfo({
+            reactor: IReactor(address(reactor)),
+            swapper: swapper,
+            nonce: 0,
+            deadline: block.timestamp + 100
+        });
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
         actions[0] = abi.encode(UNIVERSAL_ROUTER, methodParameters.value, methodParameters.data);
 
         RelayOrder memory order = RelayOrder({
-            reactor: IReactor(address(reactor)),
-            swapper: swapper,
-            startAmounts: startAmounts,
-            recipients: recipients,
+            info: info,
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             actions: actions,
-            permit: permit
+            inputs: inputs
         });
-        // RelayOrder memory order = RelayOrder({
-        //     info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-        //     decayStartTime: block.timestamp,
-        //     decayEndTime: block.timestamp + 100,
-        //     actions: actions,
-        //     inputs: inputTokens
-        // });
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));

@@ -5,6 +5,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
@@ -63,16 +64,16 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         }
     }
 
-    function resolve(SignedOrder memory signedOrder) internal returns (ResolvedRelayOrder memory resolvedOrder) {
+    function resolve(SignedOrder memory signedOrder) internal view returns (ResolvedRelayOrder memory resolvedOrder) {
         // Validate the order before resolving.
         RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
 
         return ResolvedRelayOrder({
-            swapper: order.swapper,
+            swapper: order.info.swapper,
             actions: order.actions,
-            permit: order.permit,
-            details: order.transferDetails(),
+            permit: order.toPermit(),
+            details: order.toTransferDetails(),
             sig: signedOrder.sig,
             hash: order.hash()
         });
