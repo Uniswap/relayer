@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {RelayDecayLib} from "../../../src/lib/RelayDecayLib.sol";
+import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 
 contract RelayDecayLibTest is Test {
     function testRelayDecayNoDecay(uint256 amount, uint256 decayStartTime, uint256 decayEndTime) public {
@@ -104,7 +105,7 @@ contract RelayDecayLibTest is Test {
         uint256 decayEndTime
     ) public {
         vm.assume(decayEndTime < decayStartTime);
-        vm.expectRevert(RelayDecayLib.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(ReactorErrors.OrderEndTimeBeforeStartTime.selector);
         RelayDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
     }
 }
