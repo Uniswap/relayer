@@ -15,8 +15,6 @@ import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 
-import "forge-std/console2.sol";
-
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone

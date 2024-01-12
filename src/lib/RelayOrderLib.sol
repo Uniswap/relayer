@@ -7,8 +7,6 @@ import {RelayOrder, Input} from "../base/ReactorStructs.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 
-import "forge-std/console2.sol";
-
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
 
@@ -52,13 +50,13 @@ library RelayOrderLib {
         pure
         returns (ISignatureTransfer.PermitBatchTransferFrom memory permit)
     {
-        uint256 inputLength = order.inputs.length;
+        uint256 inputsLength = order.inputs.length;
         // Build TokenPermissions array with the maxValue
         ISignatureTransfer.TokenPermissions[] memory permissions = new ISignatureTransfer.TokenPermissions[](
-            inputLength
+            inputsLength
         );
 
-        for (uint256 i = 0; i < inputLength; i++) {
+        for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
             permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
         }
@@ -76,11 +74,11 @@ library RelayOrderLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
     {
-        uint256 inputLength = order.inputs.length;
+        uint256 inputsLength = order.inputs.length;
         // Build TransferDetails with the final resolved amount
-        details = new ISignatureTransfer.SignatureTransferDetails[](inputLength);
+        details = new ISignatureTransfer.SignatureTransferDetails[](inputsLength);
 
-        for (uint256 i = 0; i < inputLength; i++) {
+        for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
             address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
             details[i] = ISignatureTransfer.SignatureTransferDetails({
@@ -99,12 +97,12 @@ library RelayOrderLib {
     /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
-        uint256 inputLength = order.inputs.length;
+        uint256 inputsLength = order.inputs.length;
         // Build an array for the startAmounts and recipients.
-        uint256[] memory startAmounts = new uint256[](inputLength);
-        address[] memory recipients = new address[](inputLength);
+        uint256[] memory startAmounts = new uint256[](inputsLength);
+        address[] memory recipients = new address[](inputsLength);
 
-        for (uint256 i = 0; i < inputLength; i++) {
+        for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
             startAmounts[i] = input.startAmount;
             recipients[i] = input.recipient;

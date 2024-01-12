@@ -135,12 +135,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input[] memory inputs = new Input[](2);
         inputs[0] =
             Input({token: address(tokenIn), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputs[1] = Input({
-            token: address(USDC),
-            startAmount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
-            recipient: address(filler)
-        });
+        inputs[1] =
+            Input({token: address(USDC), startAmount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
 
         OrderInfo memory info = OrderInfo({
             reactor: IReactor(address(reactor)),
@@ -250,12 +246,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             maxAmount: 100 * USDC_ONE,
             recipient: UNIVERSAL_ROUTER
         });
-        inputs[1] = Input({
-            token: address(USDC),
-            startAmount: 10 * USDC_ONE,
-            maxAmount: 10 * USDC_ONE,
-            recipient: address(filler)
-        });
+        inputs[1] =
+            Input({token: address(USDC), startAmount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
 
         // sign permit for USDC
         bytes32 digest = keccak256(
@@ -306,8 +298,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         ERC20 tokenIn = USDC;
         ERC20 tokenOut = DAI;
-
-        _checkpointBalances(swapper2, address(filler), tokenIn, tokenOut, USDC);
+        // in this case, gas payment will go to executor (msg.sender)
+        _checkpointBalances(swapper2, address(permitExecutor), tokenIn, tokenOut, USDC);
         // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
         // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
         _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
@@ -334,7 +326,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             swapperOutputBalanceStart + amountOutMin,
             "Swapper did not receive enough output"
         );
-        assertEq(tokenIn.balanceOf(address(filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
+        assertEq(
+            tokenIn.balanceOf(address(permitExecutor)), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance"
+        );
     }
 
     // swapper creates one order containing a universal router swap for 100 DAI -> ETH
