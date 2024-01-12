@@ -82,8 +82,9 @@ library RelayOrderLib {
 
         for (uint256 i = 0; i < inputLength; i++) {
             Input memory input = order.inputs[i];
+            address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
             details[i] = ISignatureTransfer.SignatureTransferDetails({
-                to: input.recipient,
+                to: recipient,
                 requestedAmount: RelayDecayLib.decay(
                     input.startAmount, input.maxAmount, order.decayStartTime, order.decayEndTime
                     )

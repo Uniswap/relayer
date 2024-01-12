@@ -22,6 +22,16 @@ contract PermitSignature is Test {
     bytes32 constant RELAY_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(_PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB, RelayOrderLib.PERMIT2_ORDER_TYPE));
 
+    function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        return getPermitSignature(
+            privateKey, permit2, order.toPermit(), address(order.info.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
+        );
+    }
+
     function getPermitSignature(
         uint256 privateKey,
         address permit2,
@@ -56,16 +66,6 @@ contract PermitSignature is Test {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
-        internal
-        view
-        returns (bytes memory sig)
-    {
-        return getPermitSignature(
-            privateKey, permit2, order.toPermit(), address(order.info.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
-        );
-    }
-
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, NAME_HASH, block.chainid, permit2));
     }
@@ -76,23 +76,5 @@ contract PermitSignature is Test {
         returns (bytes32)
     {
         return keccak256(abi.encode(TOKEN_PERMISSIONS_TYPEHASH, permitted));
-    }
-
-    /// @notice Uses default values for deadline = block.timestamp + 100 and nonce = 0
-    function buildPermitBatchTransferFrom(address[] memory tokens, uint256[] memory amounts)
-        internal
-        view
-        returns (ISignatureTransfer.PermitBatchTransferFrom memory)
-    {
-        ISignatureTransfer.TokenPermissions[] memory permitted =
-            new ISignatureTransfer.TokenPermissions[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; ++i) {
-            permitted[i] = ISignatureTransfer.TokenPermissions({token: tokens[i], amount: amounts[i]});
-        }
-        return ISignatureTransfer.PermitBatchTransferFrom({
-            permitted: permitted,
-            nonce: 0,
-            deadline: block.timestamp + 100
-        });
     }
 }
