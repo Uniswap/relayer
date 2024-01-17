@@ -7,9 +7,9 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 interface IRelayOrderReactor {
     /// @notice Execute a single order
     /// @param order The order definition and valid signature to execute
-    function execute(SignedOrder calldata order) external payable;
+    function execute(SignedOrder calldata order) external;
 
     /// @notice Execute the given orders at once
     /// @param orders The order definitions and valid signatures to execute
-    function executeBatch(SignedOrder[] calldata orders) external payable;
+    function executeBatch(SignedOrder[] calldata orders) external;
 }

@@ -40,7 +40,7 @@ contract PermitExecutor is Owned {
         onlyWhitelistedCaller
     {
         _permit(permitData);
-        reactor.execute{value: msg.value}(order);
+        reactor.execute(order);
     }
 
     /// @notice assume that we already have all output tokens
@@ -51,7 +51,7 @@ contract PermitExecutor is Owned {
         onlyWhitelistedCaller
     {
         _permitBatch(permitData);
-        reactor.executeBatch{value: msg.value}(orders);
+        reactor.executeBatch(orders);
     }
 
     /// @notice execute a signed 2612-style permit
