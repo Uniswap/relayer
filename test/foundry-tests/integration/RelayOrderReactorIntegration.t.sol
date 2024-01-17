@@ -220,7 +220,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
-        reactor.execute{value: methodParameters.value}(signedOrder);
+        reactor.execute(signedOrder);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -306,7 +306,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
-        permitExecutor.executeWithPermit{value: methodParameters.value}(signedOrder, permitData);
+        permitExecutor.executeWithPermit(signedOrder, permitData);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -375,7 +375,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
-        reactor.execute{value: methodParameters.value}(signedOrder);
+        reactor.execute(signedOrder);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -426,7 +426,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         vm.expectRevert(0x675cae38); // InvalidToken()
-        reactor.execute{value: methodParameters.value}(signedOrder);
+        reactor.execute(signedOrder);
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

@@ -20,7 +20,6 @@ struct RelayOrder {
 }
 
 /// @dev generic order information
-///  should be included as the first field in any concrete order types
 struct OrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper

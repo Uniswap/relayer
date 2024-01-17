@@ -108,16 +108,23 @@ library RelayOrderLib {
             recipients[i] = input.recipient;
         }
 
+        // Bytes[] must be hashed individually then concatenated according to EIP712.
+        uint256 actionsLength = order.actions.length;
+        bytes32[] memory hashedActions = new bytes32[](actionsLength);
+        for (uint256 i = 0; i < actionsLength; i++) {
+            hashedActions[i] = keccak256(order.actions[i]);
+        }
+
         return keccak256(
             abi.encode(
                 RELAY_ORDER_TYPEHASH,
                 order.info.reactor,
                 order.info.swapper,
-                keccak256(abi.encodePacked(startAmounts)), // I belive the EIP721 standard is encodePacked
+                keccak256(abi.encodePacked(startAmounts)),
                 keccak256(abi.encodePacked(recipients)),
                 order.decayStartTime,
                 order.decayEndTime,
-                order.actions // for bytes array you dont have to encodePacked? double check
+                abi.encodePacked(hashedActions)
             )
         );
     }

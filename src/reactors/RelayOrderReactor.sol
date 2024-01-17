@@ -31,14 +31,14 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         permit2 = _permit2;
     }
 
-    function execute(SignedOrder calldata order) external payable nonReentrant {
+    function execute(SignedOrder calldata order) external nonReentrant {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
         resolvedOrders[0] = resolve(order);
 
         _handleResolvedOrders(resolvedOrders);
     }
 
-    function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
+    function executeBatch(SignedOrder[] calldata orders) external nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
 
@@ -52,11 +52,12 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
     }
 
     function _handleResolvedOrders(ResolvedRelayOrder[] memory orders) private {
+        uint256 ordersLength = orders.length;
         unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory order = orders[i];
                 order.transferInputTokens(permit2);
-                order.executeActions(); // passing the whole order in? would be nice to not pass all the extra unrelated info in
+                order.executeActions();
                 emit Fill(order.hash, msg.sender, order.swapper, order.permit.nonce);
             }
         }
@@ -75,9 +76,5 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             sig: signedOrder.sig,
             hash: order.hash()
         });
-    }
-
-    receive() external payable {
-        // receive native asset to support native output
     }
 }
