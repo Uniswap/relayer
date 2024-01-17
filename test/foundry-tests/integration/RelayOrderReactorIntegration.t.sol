@@ -210,8 +210,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input[] memory inputs = new Input[](2);
         inputs[0] =
             Input({token: address(tokenIn), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputs[1] =
-            Input({token: address(gasToken), startAmount: 10 * ONE, maxAmount: 10 * ONE, recipient: address(0)});
+        inputs[1] = Input({token: address(gasToken), startAmount: 10 * ONE, maxAmount: 10 * ONE, recipient: address(0)});
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -266,8 +265,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input[] memory inputs = new Input[](2);
         inputs[0] =
             Input({token: address(tokenIn), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputs[1] =
-            Input({token: address(gasToken), startAmount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputs[1] = Input({
+            token: address(gasToken),
+            startAmount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         OrderInfo memory info = OrderInfo({
             reactor: IReactor(address(reactor)),
