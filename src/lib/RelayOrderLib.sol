@@ -52,9 +52,8 @@ library RelayOrderLib {
     {
         uint256 inputsLength = order.inputs.length;
         // Build TokenPermissions array with the maxValue
-        ISignatureTransfer.TokenPermissions[] memory permissions = new ISignatureTransfer.TokenPermissions[](
-            inputsLength
-        );
+        ISignatureTransfer.TokenPermissions[] memory permissions =
+            new ISignatureTransfer.TokenPermissions[](inputsLength);
 
         for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
