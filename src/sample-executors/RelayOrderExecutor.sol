@@ -7,10 +7,11 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
+import {Multicall} from "./Multicall.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
-/// @notice 
-contract RelayOrderExecutor is Owned {
+/// @notice Sample executor for Relay orders
+contract RelayOrderExecutor is Multicall, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
@@ -42,42 +43,14 @@ contract RelayOrderExecutor is Owned {
         reactor.executeBatch(orders);
     }
 
-    /// @notice the reactor performs no verification that the user's signed permit is executed correctly
-    ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
-    /// @dev assume 2612 permit is collected offchain
-    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData)
-        external
-        onlyWhitelistedCaller
-    {
-        _permit(permitData);
-        execute(order);
-    }
-
-    /// @notice assume that we already have all output tokens
-    /// @dev assume 2612 permits are collected offchain
-    function executeBatchWithPermit(SignedOrder[] calldata orders, bytes[] calldata permitData)
-        external
-        payable
-        onlyWhitelistedCaller
-    {
-        _permitBatch(permitData);
-        executeBatch(orders);
-    }
-
     /// @notice execute a signed 2612-style permit
     /// the transaction will revert if the permit cannot be executed
     /// must be called before the call to the reactor
-    function _permit(bytes calldata permitData) internal {
+    function permit(bytes calldata permitData) public {
         (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
         Permit2Lib.permit2(ERC20(token), _owner, spender, value, deadline, v, r, s);
-    }
-
-    function _permitBatch(bytes[] calldata permitData) internal {
-        for (uint256 i = 0; i < permitData.length; i++) {
-            _permit(permitData[i]);
-        }
     }
 
     /// @notice Transfer all tokens in this contract to the recipient. Can only be called by owner.
