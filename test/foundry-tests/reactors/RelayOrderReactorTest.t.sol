@@ -91,12 +91,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         bytes[] memory actions = new bytes[](0);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfo({
-                reactor: IRelayOrderReactor(reactor),
-                swapper: swapper,
-                nonce: 0,
-                deadline: deadline
-            }),
+            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
             decayStartTime: block.timestamp,
             decayEndTime: deadline,
             actions: actions,

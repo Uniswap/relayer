@@ -46,7 +46,7 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
         executor = new RelayOrderExecutor(filler, IRelayOrderReactor(reactor), executorOwner);
     }
 
-    // Test: 
+    // Test:
     // - Executor has ERC20 balance, can withdraw
     // - Executor has ETH balance, can withdraw
     // - Perms setup
