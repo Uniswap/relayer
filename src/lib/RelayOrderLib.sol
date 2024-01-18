@@ -1,83 +1,130 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
-import {OrderInfoLib} from "UniswapX/src/lib/OrderInfoLib.sol";
-import {InputTokenWithRecipient} from "../base/ReactorStructs.sol";
+import {RelayDecayLib} from "./RelayDecayLib.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {RelayOrder, Input} from "../base/ReactorStructs.sol";
+import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
+import {ReactorErrors} from "../base/ReactorErrors.sol";
 
-/// @dev External struct used to specify simple relay orders
-struct RelayOrder {
-    // generic order information
-    OrderInfo info;
-    // The time at which the inputs start decaying
-    uint256 decayStartTime;
-    // The time at which price becomes static
-    uint256 decayEndTime;
-    // ecnoded actions to execute onchain
-    bytes[] actions;
-    // The tokens that the swapper will provide when settling the order
-    InputTokenWithRecipient[] inputs;
-}
-
-/// @notice helpers for handling relay order objects
 library RelayOrderLib {
-    using OrderInfoLib for OrderInfo;
+    using RelayOrderLib for RelayOrder;
 
-    bytes private constant INPUT_TOKEN_TYPE =
-        "InputTokenWithRecipient(address token,uint256 amount,uint256 maxAmount,address recipient)";
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
+    );
 
-    bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
-
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
+    bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
         "RelayOrder(",
-        "OrderInfo info,",
+        "address reactor,",
+        "address swapper,",
+        "uint256[] startAmounts,",
+        "address[] recipients,",
         "uint256 decayStartTime,",
         "uint256 decayEndTime,",
-        "bytes[] actions,",
-        "InputTokenWithRecipient[] inputs,",
-        "OutputToken[] outputs)",
-        OrderInfoLib.ORDER_INFO_TYPE,
-        INPUT_TOKEN_TYPE
+        "bytes[] actions)"
     );
-    bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
-    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
-    string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("RelayOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+    bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
 
-    /// @notice returns the hash of an input token struct
-    function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
-        return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount));
+    function validate(RelayOrder memory order) internal view {
+        if (order.info.deadline < order.decayEndTime) {
+            revert ReactorErrors.DeadlineBeforeEndTime();
+        }
+
+        if (block.timestamp > order.info.deadline) {
+            revert ReactorErrors.DeadlinePassed();
+        }
+
+        if (order.decayEndTime < order.decayStartTime) {
+            revert ReactorErrors.OrderEndTimeBeforeStartTime();
+        }
+
+        if (address(this) != address(order.info.reactor)) {
+            revert ReactorErrors.InvalidReactor();
+        }
     }
 
-    /// @notice returns the hash of an input token struct
-    function hash(InputTokenWithRecipient[] memory inputs) private pure returns (bytes32) {
-        unchecked {
-            bytes memory packedHashes = new bytes(32 * inputs.length);
+    function toPermit(RelayOrder memory order)
+        internal
+        pure
+        returns (ISignatureTransfer.PermitBatchTransferFrom memory permit)
+    {
+        uint256 inputsLength = order.inputs.length;
+        // Build TokenPermissions array with the maxValue
+        ISignatureTransfer.TokenPermissions[] memory permissions = new ISignatureTransfer.TokenPermissions[](
+            inputsLength
+        );
 
-            for (uint256 i = 0; i < inputs.length; i++) {
-                bytes32 inputHash = hash(inputs[i]);
-                assembly {
-                    mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), inputHash)
-                }
-            }
-
-            return keccak256(packedHashes);
+        for (uint256 i = 0; i < inputsLength; i++) {
+            Input memory input = order.inputs[i];
+            permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
         }
+
+        return ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permissions,
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+    }
+
+    /// @notice The requestedAmount is built from the decayed/resolved amount.
+    function toTransferDetails(RelayOrder memory order)
+        internal
+        view
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
+    {
+        uint256 inputsLength = order.inputs.length;
+        // Build TransferDetails with the final resolved amount
+        details = new ISignatureTransfer.SignatureTransferDetails[](inputsLength);
+
+        for (uint256 i = 0; i < inputsLength; i++) {
+            Input memory input = order.inputs[i];
+            address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
+            details[i] = ISignatureTransfer.SignatureTransferDetails({
+                to: recipient,
+                requestedAmount: RelayDecayLib.decay(
+                    input.startAmount, input.maxAmount, order.decayStartTime, order.decayEndTime
+                    )
+            });
+        }
+
+        return details;
     }
 
     /// @notice hash the given order
     /// @param order the order to hash
+    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
+        uint256 inputsLength = order.inputs.length;
+        // Build an array for the startAmounts and recipients.
+        uint256[] memory startAmounts = new uint256[](inputsLength);
+        address[] memory recipients = new address[](inputsLength);
+
+        for (uint256 i = 0; i < inputsLength; i++) {
+            Input memory input = order.inputs[i];
+            startAmounts[i] = input.startAmount;
+            recipients[i] = input.recipient;
+        }
+
+        // Bytes[] must be hashed individually then concatenated according to EIP712.
+        uint256 actionsLength = order.actions.length;
+        bytes32[] memory hashedActions = new bytes32[](actionsLength);
+        for (uint256 i = 0; i < actionsLength; i++) {
+            hashedActions[i] = keccak256(order.actions[i]);
+        }
+
         return keccak256(
             abi.encode(
-                ORDER_TYPE_HASH,
-                order.info.hash(),
+                RELAY_ORDER_TYPEHASH,
+                order.info.reactor,
+                order.info.swapper,
+                keccak256(abi.encodePacked(startAmounts)),
+                keccak256(abi.encodePacked(recipients)),
                 order.decayStartTime,
                 order.decayEndTime,
-                order.actions,
-                hash(order.inputs)
+                abi.encodePacked(hashedActions)
             )
         );
     }
