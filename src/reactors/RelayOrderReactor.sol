@@ -59,7 +59,7 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory order = orders[i];
                 order.transferInputTokens(permit2);
-                executeActions(order);
+                executeActions(order.actions);
                 emit Fill(order.hash, msg.sender, order.swapper, order.permit.nonce);
             }
         }
@@ -80,10 +80,10 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         });
     }
 
-    function executeActions(ResolvedRelayOrder memory order) internal {
-        uint256 actionsLength = order.actions.length;
+    function executeActions(bytes[] memory actions) internal {
+        uint256 actionsLength = actions.length;
         for (uint256 i = 0; i < actionsLength;) {
-            (bool success, bytes memory result) = universalRouter.call(order.actions[i]);
+            (bool success, bytes memory result) = universalRouter.call(actions[i]);
             if (!success) {
                 // bubble up all errors, including custom errors which are encoded like functions
                 assembly {
