@@ -316,6 +316,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     }
 
     // - filler has NO dust of input token
+    // - new nonce used in P2 (clean write)
     function testExecuteWorstCase() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
