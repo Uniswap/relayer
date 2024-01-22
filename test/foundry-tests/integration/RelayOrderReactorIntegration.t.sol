@@ -181,7 +181,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-        // Testing the best case for gas benchmarking purposes
+    // Testing the best case for gas benchmarking purposes
     // - input tokens are the same
     // - dirty write for P2 nonce
     // - filler has dust of input token
@@ -373,7 +373,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         );
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
-    
+
     function testPermitAndExecute() public {
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
