@@ -26,8 +26,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address swapper;
     uint256 fillerPrivateKey;
     address filler;
-    uint256 executorOwnerPrivateKey;
-    address executorOwner;
 
     RelayOrderExecutor executor;
 
@@ -43,15 +41,14 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         swapperPrivateKey = 0x12341234;
         fillerPrivateKey = 0xdead;
-        executorOwnerPrivateKey = 0xbeef;
         swapper = vm.addr(swapperPrivateKey);
         filler = vm.addr(fillerPrivateKey);
-        executorOwner = vm.addr(executorOwnerPrivateKey);
 
         permit2 = IPermit2(deployPermit2());
 
         reactor = new RelayOrderReactor(permit2);
-        executor = new RelayOrderExecutor(filler, IRelayOrderReactor(reactor), executorOwner);
+        // filler is also owner of executor
+        executor = new RelayOrderExecutor(filler, IRelayOrderReactor(reactor), filler);
 
         // swapper approves permit2 to transfer tokens
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
