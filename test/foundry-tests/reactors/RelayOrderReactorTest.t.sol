@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {console2} from "forge-std/console2.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
@@ -20,7 +17,6 @@ import {RelayOrderExecutor} from "../../../src/sample-executors/RelayOrderExecut
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
-    using OrderInfoBuilder for OrderInfo;
     using RelayOrderLib for RelayOrder;
 
     MockERC20 tokenIn;
