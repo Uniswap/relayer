@@ -18,7 +18,9 @@ contract RelayOrderExecutor is Multicall, Owned {
     /// @notice thrown if this contract is called by an address other than the whitelisted caller
     error CallerNotWhitelisted();
 
-    address private immutable whitelistedCaller;
+    event WhitelistedCallerChanged(address indexed newWhitelistedCaller);
+
+    address private whitelistedCaller;
     IRelayOrderReactor private immutable reactor;
 
     modifier onlyWhitelistedCaller() {
@@ -67,6 +69,13 @@ contract RelayOrderExecutor is Multicall, Owned {
     /// @param recipient The recipient of the ETH
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Change the whitelisted caller
+    /// @param newWhitelistedCaller The new whitelisted caller
+    function changeWhitelistedCaller(address newWhitelistedCaller) external onlyOwner {
+        whitelistedCaller = newWhitelistedCaller;
+        emit WhitelistedCallerChanged(newWhitelistedCaller);
     }
 
     receive() external payable {}
