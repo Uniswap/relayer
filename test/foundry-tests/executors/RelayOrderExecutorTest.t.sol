@@ -97,7 +97,8 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
         executor.withdrawETH(recipient);
     }
 
-    function testExecutorMulticallSamePerms() public {
+    // caller has permissions required to call all functions in multicall
+    function testExecutorMulticallAllPerms() public {
         address recipient = vm.addr(0x1);
         tokenIn.mint(address(executor), ONE);
         vm.deal(address(executor), ONE);
@@ -135,6 +136,7 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
         executor.multicall(data);
     }
 
+    // caller has no permissions to call any functions within the multicall
     function testExecutorMulticallMissingPerms() public {
         address recipient = vm.addr(0x1);
         tokenIn.mint(address(executor), ONE);
