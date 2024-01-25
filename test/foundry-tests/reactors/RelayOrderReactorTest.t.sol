@@ -26,6 +26,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address swapper;
     uint256 fillerPrivateKey;
     address filler;
+    address constant MOCK_UNIVERSAL_ROUTER = address(0);
 
     RelayOrderExecutor executor;
 
@@ -46,7 +47,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         permit2 = IPermit2(deployPermit2());
 
-        reactor = new RelayOrderReactor(permit2);
+        reactor = new RelayOrderReactor(permit2, MOCK_UNIVERSAL_ROUTER);
         // filler is also owner of executor
         executor = new RelayOrderExecutor(filler, IRelayOrderReactor(reactor), filler);
 

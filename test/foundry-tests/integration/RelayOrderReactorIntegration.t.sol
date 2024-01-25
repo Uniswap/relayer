@@ -278,7 +278,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 1,
             deadline: block.timestamp + 100
@@ -332,7 +332,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         });
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 0,
             deadline: block.timestamp + 100

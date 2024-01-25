@@ -32,6 +32,7 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
     RelayOrderExecutor executor;
 
     uint256 constant ONE = 10 ** 18;
+    address constant MOCK_UNIVERSAL_ROUTER = address(0);
 
     function setUp() public {
         vm.chainId(1);
@@ -45,7 +46,7 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         permit2 = IPermit2(deployPermit2());
 
-        reactor = new RelayOrderReactor(permit2);
+        reactor = new RelayOrderReactor(permit2, MOCK_UNIVERSAL_ROUTER);
         executor = new RelayOrderExecutor(whitelistedCaller, IRelayOrderReactor(reactor), owner);
     }
 
