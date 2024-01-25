@@ -162,7 +162,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteAverageCase");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
