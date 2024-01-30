@@ -20,7 +20,7 @@ import {MethodParameters, Interop} from "../util/Interop.sol";
 import {AddressBuilder} from "permit2/test/utils/AddressBuilder.sol";
 import {AmountBuilder} from "permit2/test/utils/AmountBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
+import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
     using stdJson for string;
@@ -144,7 +144,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 1,
             deadline: block.timestamp + 100
@@ -208,7 +208,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 1,
             deadline: block.timestamp + 100
@@ -278,7 +278,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 1,
             deadline: block.timestamp + 100
@@ -332,7 +332,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         });
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 0,
             deadline: block.timestamp + 100
@@ -419,7 +419,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
         actions[0] = methodParameters.data;
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper2,
             nonce: 0,
             deadline: block.timestamp + 100
@@ -486,7 +486,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 0,
             deadline: block.timestamp + 100
@@ -545,7 +545,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         actions[0] = methodParameters.data;
 
         OrderInfo memory info = OrderInfo({
-            reactor: IReactor(address(reactor)),
+            reactor: IRelayOrderReactor(address(reactor)),
             swapper: swapper,
             nonce: 0,
             deadline: block.timestamp + 100

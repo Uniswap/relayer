@@ -33,9 +33,14 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         universalRouter = _universalRouter;
     }
 
-    function execute(SignedOrder calldata order) external nonReentrant {
+    function execute(SignedOrder calldata signedOrder)
+        external
+        nonReentrant
+        returns (ResolvedRelayOrder memory order)
+    {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
-        resolvedOrders[0] = resolve(order);
+        order = resolve(signedOrder);
+        resolvedOrders[0] = order;
 
         _handleResolvedOrders(resolvedOrders);
     }
