@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
@@ -20,7 +19,7 @@ import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
+contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
@@ -36,7 +35,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, Reentranc
     }
 
     /// @notice execute a signed RelayOrder
-    function execute(SignedOrder calldata order) external nonReentrant {
+    function execute(SignedOrder calldata order) external {
         ResolvedRelayOrder memory resolvedOrder = resolve(order);
 
         resolvedOrder.transferInputTokens(permit2);
