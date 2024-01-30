@@ -2,14 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {IMulticall} from "./IMulticall.sol";
 
 /// @notice Interface for the relay order reactors
-interface IRelayOrderReactor {
+interface IRelayOrderReactor is IMulticall {
     /// @notice Execute a single order
     /// @param order The order definition and valid signature to execute
     function execute(SignedOrder calldata order) external;
-
-    /// @notice Execute the given orders at once
-    /// @param orders The order definitions and valid signatures to execute
-    function executeBatch(SignedOrder[] calldata orders) external;
 }
