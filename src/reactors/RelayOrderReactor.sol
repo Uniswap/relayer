@@ -3,12 +3,10 @@ pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {ResolvedRelayOrder, RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
@@ -19,8 +17,6 @@ import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
-    using SafeTransferLib for ERC20;
-    using CurrencyLibrary for address;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
     /// @notice permit2 address used for token transfers and signature verification
