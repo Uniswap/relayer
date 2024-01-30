@@ -408,9 +408,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, swapper2);
 
-        bytes memory permitData = abi.encode(
-            address(USDC), abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s)
-        );
+        bytes memory permitData =
+            abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
@@ -435,7 +434,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         // build multicall data
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(reactor.permit.selector, permitData);
+        data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
         data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder);
 
         ERC20 tokenIn = USDC;

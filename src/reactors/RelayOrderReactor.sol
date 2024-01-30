@@ -46,11 +46,10 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     /// @notice execute a signed 2612-style permit
     /// the transaction will revert if the permit cannot be executed
     /// must be called before the call to the reactor
-    function permit(bytes calldata permitData) external {
-        (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
+    function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        Permit2Lib.permit2(ERC20(token), _owner, spender, value, deadline, v, r, s);
+        Permit2Lib.permit2(token, _owner, spender, value, deadline, v, r, s);
     }
 
     function resolve(SignedOrder memory signedOrder) internal view returns (ResolvedRelayOrder memory resolvedOrder) {
