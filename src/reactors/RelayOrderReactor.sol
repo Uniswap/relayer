@@ -5,6 +5,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
@@ -12,13 +13,14 @@ import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {ResolvedRelayOrder, RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {Multicall} from "../base/Multicall.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
+contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
@@ -33,36 +35,23 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         universalRouter = _universalRouter;
     }
 
+    /// @notice execute a signed RelayOrder
     function execute(SignedOrder calldata order) external nonReentrant {
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
-        resolvedOrders[0] = resolve(order);
+        ResolvedRelayOrder memory resolvedOrder = resolve(order);
 
-        _handleResolvedOrders(resolvedOrders);
+        resolvedOrder.transferInputTokens(permit2);
+        executeActions(resolvedOrder.actions);
+        emit Fill(resolvedOrder.hash, msg.sender, resolvedOrder.swapper, resolvedOrder.permit.nonce);
     }
 
-    function executeBatch(SignedOrder[] calldata orders) external nonReentrant {
-        uint256 ordersLength = orders.length;
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
-
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                resolvedOrders[i] = resolve(orders[i]);
-            }
-        }
-
-        _handleResolvedOrders(resolvedOrders);
-    }
-
-    function _handleResolvedOrders(ResolvedRelayOrder[] memory orders) private {
-        uint256 ordersLength = orders.length;
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory order = orders[i];
-                order.transferInputTokens(permit2);
-                executeActions(order.actions);
-                emit Fill(order.hash, msg.sender, order.swapper, order.permit.nonce);
-            }
-        }
+    /// @notice execute a signed 2612-style permit
+    /// the transaction will revert if the permit cannot be executed
+    /// must be called before the call to the reactor
+    function permit(bytes calldata permitData) external {
+        (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
+        (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
+        Permit2Lib.permit2(ERC20(token), _owner, spender, value, deadline, v, r, s);
     }
 
     function resolve(SignedOrder memory signedOrder) internal view returns (ResolvedRelayOrder memory resolvedOrder) {
