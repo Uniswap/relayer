@@ -7,11 +7,10 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
-import {Multicall} from "./Multicall.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
 /// @notice Sample executor for Relay orders
-contract RelayOrderExecutor is Multicall, Owned {
+contract RelayOrderExecutor is Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
@@ -35,24 +34,18 @@ contract RelayOrderExecutor is Multicall, Owned {
         reactor = _reactor;
     }
 
-    /// @notice Execute a single relay order
-    function execute(SignedOrder calldata order) public onlyWhitelistedCaller {
+    /// @notice Shortcut to execute a single relay order
+    /// @param order The order to execute
+    function execute(SignedOrder calldata order) external onlyWhitelistedCaller {
         reactor.execute(order);
     }
 
-    /// @notice Execute a batch of relay orders
-    function executeBatch(SignedOrder[] calldata orders) public onlyWhitelistedCaller {
-        reactor.executeBatch(orders);
-    }
-
-    /// @notice execute a signed 2612-style permit
-    /// the transaction will revert if the permit cannot be executed
-    /// must be called before the call to the reactor
-    function permit(bytes calldata permitData) public {
-        (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
-        (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
-            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        Permit2Lib.permit2(ERC20(token), _owner, spender, value, deadline, v, r, s);
+    /// @notice Call multiple functions on the reactor
+    /// @param data encoded function data for each of the calls
+    /// @return results return values from each of the calls
+    /// @dev use for execute batch and 2612 permits
+    function multicall(bytes[] calldata data) external onlyWhitelistedCaller returns (bytes[] memory results) {
+        return reactor.multicall(data);
     }
 
     /// @notice Transfer all tokens in this contract to the recipient. Can only be called by owner.

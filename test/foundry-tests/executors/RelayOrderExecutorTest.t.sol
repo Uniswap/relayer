@@ -98,8 +98,8 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
         executor.withdrawETH(recipient);
     }
 
-    // caller has permissions required to call all functions in multicall
-    function testExecutorMulticallAllPerms() public {
+    // execute batch via multicall
+    function testExecutorMulticall() public {
         address recipient = vm.addr(0x1);
         tokenIn.mint(address(executor), ONE);
         vm.deal(address(executor), ONE);
@@ -108,50 +108,6 @@ contract RelayOrderExecutorTest is Test, PermitSignature, DeployPermit2 {
         tokens[0] = tokenIn;
 
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(RelayOrderExecutor.withdrawERC20.selector, tokens, recipient);
-        data[1] = abi.encodeWithSelector(RelayOrderExecutor.withdrawETH.selector, recipient);
-
-        vm.prank(owner);
-        executor.multicall(data);
-        assertEq(tokenIn.balanceOf(address(executor)), 0);
-        assertEq(tokenIn.balanceOf(recipient), ONE);
-        assertEq(address(executor).balance, 0);
-        assertEq(recipient.balance, ONE);
-    }
-
-    // caller is authorized to call some of the functions but not all
-    // in this case, owner can withdraw but not call execute
-    function testExecutorMulticallMixedPerms() public {
-        address recipient = vm.addr(0x1);
-        tokenIn.mint(address(executor), ONE);
-
-        ERC20[] memory tokens = new ERC20[](1);
-        tokens[0] = tokenIn;
-
-        bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(RelayOrderExecutor.withdrawERC20.selector, tokens, recipient);
-        data[1] = abi.encodeWithSelector(RelayOrderExecutor.execute.selector, SignedOrder("", ""));
-
-        vm.prank(owner);
-        vm.expectRevert(RelayOrderExecutor.CallerNotWhitelisted.selector);
-        executor.multicall(data);
-    }
-
-    // caller has no permissions to call any functions within the multicall
-    function testExecutorMulticallMissingPerms() public {
-        address recipient = vm.addr(0x1);
-        tokenIn.mint(address(executor), ONE);
-        vm.deal(address(executor), ONE);
-
-        ERC20[] memory tokens = new ERC20[](1);
-        tokens[0] = tokenIn;
-
-        bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(RelayOrderExecutor.withdrawERC20.selector, tokens, recipient);
-        data[1] = abi.encodeWithSelector(RelayOrderExecutor.withdrawETH.selector, recipient);
-
-        vm.prank(vm.addr(0xdeadbeef));
-        vm.expectRevert("UNAUTHORIZED");
-        executor.multicall(data);
+        // TODO:
     }
 }
