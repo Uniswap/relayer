@@ -3,12 +3,15 @@ pragma solidity ^0.8.0;
 
 import {RelayDecayLib} from "./RelayDecayLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {RelayOrder, Input} from "../base/ReactorStructs.sol";
+import {RelayOrder, Input, ResolvedTransferDetails} from "../base/ReactorStructs.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {InputsLib} from "./InputsLib.sol";
 
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
+    using InputsLib for Input[];
 
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
@@ -45,50 +48,29 @@ library RelayOrderLib {
         }
     }
 
-    function toPermit(RelayOrder memory order)
+    function transferInputTokens(RelayOrder memory order, IPermit2 permit2, bytes calldata sig)
         internal
-        pure
-        returns (ISignatureTransfer.PermitBatchTransferFrom memory permit)
+        returns (ResolvedTransferDetails memory resolved)
     {
-        uint256 inputsLength = order.inputs.length;
-        // Build TokenPermissions array with the maxValue
-        ISignatureTransfer.TokenPermissions[] memory permissions =
-            new ISignatureTransfer.TokenPermissions[](inputsLength);
+        bytes32 orderHash = order.hash();
+        (
+            ISignatureTransfer.TokenPermissions[] memory permissions,
+            ISignatureTransfer.SignatureTransferDetails[] memory details
+        ) = order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime);
 
-        for (uint256 i = 0; i < inputsLength; i++) {
-            Input memory input = order.inputs[i];
-            permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
-        }
-
-        return ISignatureTransfer.PermitBatchTransferFrom({
-            permitted: permissions,
-            nonce: order.info.nonce,
-            deadline: order.info.deadline
-        });
-    }
-
-    /// @notice The requestedAmount is built from the decayed/resolved amount.
-    function toTransferDetails(RelayOrder memory order)
-        internal
-        view
-        returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
-    {
-        uint256 inputsLength = order.inputs.length;
-        // Build TransferDetails with the final resolved amount
-        details = new ISignatureTransfer.SignatureTransferDetails[](inputsLength);
-
-        for (uint256 i = 0; i < inputsLength; i++) {
-            Input memory input = order.inputs[i];
-            address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
-            details[i] = ISignatureTransfer.SignatureTransferDetails({
-                to: recipient,
-                requestedAmount: RelayDecayLib.decay(
-                    input.startAmount, input.maxAmount, order.decayStartTime, order.decayEndTime
-                    )
-            });
-        }
-
-        return details;
+        permit2.permitWitnessTransferFrom(
+            ISignatureTransfer.PermitBatchTransferFrom({
+                permitted: permissions,
+                nonce: order.info.nonce,
+                deadline: order.info.deadline
+            }),
+            details,
+            order.info.swapper,
+            orderHash,
+            RelayOrderLib.PERMIT2_ORDER_TYPE,
+            sig
+        );
+        return ResolvedTransferDetails({swapper: order.info.swapper, transferDetails: details, orderHash: orderHash});
     }
 
     /// @notice hash the given order

@@ -5,11 +5,14 @@ import {Test} from "forge-std/Test.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {RelayOrder, RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
-import {OrderInfo, InputToken} from "UniswapX/src/base/ReactorStructs.sol";
+import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
+import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
+import {InputsLib} from "../../../src/lib/InputsLib.sol";
+import {Input, RelayOrder} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using RelayOrderLib for RelayOrder;
+    using InputsLib for Input[];
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -27,8 +30,15 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
+        (ISignatureTransfer.TokenPermissions[] memory permissions,) =
+            order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime);
+        ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permissions,
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
         return getPermitSignature(
-            privateKey, permit2, order.toPermit(), address(order.info.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
+            privateKey, permit2, permit, address(order.info.reactor), RELAY_ORDER_TYPE_HASH, order.hash()
         );
     }
 

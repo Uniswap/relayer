@@ -43,11 +43,9 @@ struct Input {
     uint256 maxAmount;
 }
 
-struct ResolvedRelayOrder {
+/// @notice Minimal information to return for a quoter.
+struct ResolvedTransferDetails {
     address swapper;
-    bytes[] actions;
-    ISignatureTransfer.PermitBatchTransferFrom permit;
-    ISignatureTransfer.SignatureTransferDetails[] details; // built from recipient and decayed amounts
-    bytes sig;
-    bytes32 hash;
+    ISignatureTransfer.SignatureTransferDetails[] transferDetails; // these are the resolved input amounts
+    bytes32 orderHash;
 }
