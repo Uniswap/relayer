@@ -49,15 +49,15 @@ library RelayOrderLib {
         }
     }
 
-    function transferInputTokens(RelayOrder memory order, IPermit2 permit2, address feeRecipient, bytes calldata sig)
-        internal
-        returns (ResolvedTransferDetails memory resolved)
-    {
-        bytes32 orderHash = order.hash();
-        (
-            ISignatureTransfer.TokenPermissions[] memory permissions,
-            ISignatureTransfer.SignatureTransferDetails[] memory details
-        ) = order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime, feeRecipient);
+    function transferInputTokens(
+        RelayOrder memory order,
+        bytes32 orderHash,
+        IPermit2 permit2,
+        address feeRecipient,
+        bytes calldata sig
+    ) internal returns (ISignatureTransfer.SignatureTransferDetails[] memory details) {
+        ISignatureTransfer.TokenPermissions[] memory permissions;
+        (permissions, details) = order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime, feeRecipient);
 
         permit2.permitWitnessTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({
@@ -71,7 +71,6 @@ library RelayOrderLib {
             RelayOrderLib.PERMIT2_ORDER_TYPE,
             sig
         );
-        return ResolvedTransferDetails({transferDetails: details, orderHash: orderHash});
     }
 
     /// @notice hash the given order

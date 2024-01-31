@@ -12,6 +12,7 @@ import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ActionsLib} from "../lib/ActionsLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
@@ -33,13 +34,14 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     // TODO: Consider adding nonReentrant.
     function execute(SignedOrder calldata signedOrder, address feeRecipient)
         external
-        returns (ResolvedTransferDetails memory resolved)
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory transferDetails)
     {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
-        (resolved) = order.transferInputTokens(permit2, feeRecipient, signedOrder.sig);
+        bytes32 orderHash = order.hash();
+        (transferDetails) = order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
         order.actions.execute(universalRouter);
-        emit Fill(resolved.orderHash, msg.sender, order.info.swapper, order.info.nonce);
+        emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
     function permit(ERC20 token, bytes calldata data) external {
