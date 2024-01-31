@@ -31,17 +31,17 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     }
 
     // TODO: Consider adding nonReentrant.
-    function execute(SignedOrder calldata signedOrder) external returns (ResolvedTransferDetails memory resolved) {
+    function execute(SignedOrder calldata signedOrder, address feeRecipient)
+        external
+        returns (ResolvedTransferDetails memory resolved)
+    {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
-        (resolved) = order.transferInputTokens(permit2, signedOrder.sig);
+        (resolved) = order.transferInputTokens(permit2, feeRecipient, signedOrder.sig);
         order.actions.execute(universalRouter);
         emit Fill(resolved.orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
-    /// @notice execute a signed 2612-style permit
-    /// the transaction will revert if the permit cannot be executed
-    /// must be called before the call to the reactor
     function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));

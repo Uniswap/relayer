@@ -17,6 +17,7 @@ library RelayOrderLib {
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
     );
 
+    /// @dev Max amounts and token addresses are signed in the token permissions of the permit information.
     bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
         "RelayOrder(",
         "address reactor,",
@@ -48,7 +49,7 @@ library RelayOrderLib {
         }
     }
 
-    function transferInputTokens(RelayOrder memory order, IPermit2 permit2, bytes calldata sig)
+    function transferInputTokens(RelayOrder memory order, IPermit2 permit2, address feeRecipient, bytes calldata sig)
         internal
         returns (ResolvedTransferDetails memory resolved)
     {
@@ -56,7 +57,7 @@ library RelayOrderLib {
         (
             ISignatureTransfer.TokenPermissions[] memory permissions,
             ISignatureTransfer.SignatureTransferDetails[] memory details
-        ) = order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime);
+        ) = order.inputs.toPermitDetails(order.decayStartTime, order.decayEndTime, feeRecipient);
 
         permit2.permitWitnessTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({
@@ -70,7 +71,7 @@ library RelayOrderLib {
             RelayOrderLib.PERMIT2_ORDER_TYPE,
             sig
         );
-        return ResolvedTransferDetails({swapper: order.info.swapper, transferDetails: details, orderHash: orderHash});
+        return ResolvedTransferDetails({transferDetails: details, orderHash: orderHash});
     }
 
     /// @notice hash the given order

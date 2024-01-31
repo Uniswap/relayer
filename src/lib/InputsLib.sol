@@ -7,7 +7,7 @@ import {RelayDecayLib} from "./RelayDecayLib.sol";
 
 /// @notice Handles transforming the input data into the permissions on permit2 and the decayed amounts for the transfer details.
 library InputsLib {
-    function toPermitDetails(Input[] memory inputs, uint256 decayStartTime, uint256 decayEndTime)
+    function toPermitDetails(Input[] memory inputs, uint256 decayStartTime, uint256 decayEndTime, address feeRecipient)
         internal
         view
         returns (
@@ -22,7 +22,7 @@ library InputsLib {
             Input memory input = inputs[i];
             permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
 
-            address recipient = input.recipient == address(0) ? msg.sender : input.recipient;
+            address recipient = input.recipient == address(0) ? feeRecipient : input.recipient;
             details[i] = ISignatureTransfer.SignatureTransferDetails({
                 to: recipient,
                 requestedAmount: RelayDecayLib.decay(input.startAmount, input.maxAmount, decayStartTime, decayEndTime)
