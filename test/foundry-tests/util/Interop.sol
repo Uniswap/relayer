@@ -14,7 +14,11 @@ struct MethodParameters {
 }
 
 contract Interop is Test {
-    function readFixture(string memory json, string memory key) internal returns (MethodParameters memory params) {
+    function readFixture(string memory json, string memory key)
+        internal
+        pure
+        returns (MethodParameters memory params)
+    {
         // stdjson awkwardly doesn't currently parse string ints
         // so have to do a lil hack to read as string then parse
         // ref https://book.getfoundry.sh/cheatcodes/parse-json#decoding-json-objects-a-tip
