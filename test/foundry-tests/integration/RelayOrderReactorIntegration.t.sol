@@ -161,9 +161,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
         _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
 
+        bytes memory selector = abi.encodeWithSelector(reactor.execute.selector, order, signedOrder.sig);
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
-        reactor.execute(signedOrder);
+        address(reactor).call(selector);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -227,7 +228,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
-        reactor.execute(signedOrder);
+        reactor.execute(order, signedOrder.sig);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -297,7 +298,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteAverageCase");
-        reactor.execute(signedOrder);
+        reactor.execute(order, signedOrder.sig);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -355,7 +356,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWorstCase");
-        reactor.execute(signedOrder);
+        reactor.execute(order, signedOrder.sig);
         snapEnd();
 
         uint256 amountOutMin = 95 * USDC_ONE;
@@ -435,7 +436,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // build multicall data
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
-        data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder);
+        data[1] = abi.encodeWithSelector(reactor.execute.selector, order, signedOrder.sig);
 
         ERC20 tokenIn = USDC;
         ERC20 tokenOut = DAI;
@@ -511,7 +512,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
-        reactor.execute(signedOrder);
+        reactor.execute(order, signedOrder.sig);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -562,7 +563,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         vm.expectRevert(0x675cae38); // InvalidToken()
-        reactor.execute(signedOrder);
+        reactor.execute(order, signedOrder.sig);
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

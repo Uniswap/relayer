@@ -31,10 +31,12 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     }
 
     // TODO: Consider adding nonReentrant.
-    function execute(SignedOrder calldata signedOrder) external returns (ResolvedTransferDetails memory resolved) {
-        (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
+    function execute(RelayOrder calldata order, bytes calldata sig)
+        external
+        returns (ResolvedTransferDetails memory resolved)
+    {
         order.validate();
-        (resolved) = order.transferInputTokens(permit2, signedOrder.sig);
+        (resolved) = order.transferInputTokens(permit2, sig);
         order.actions.execute(universalRouter);
         emit Fill(resolved.orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
