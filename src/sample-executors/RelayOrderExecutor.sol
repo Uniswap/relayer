@@ -10,6 +10,7 @@ import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
 /// @notice Sample executor for Relay orders
+/// @dev this contract acts like a fee collector for relay orders
 contract RelayOrderExecutor is Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
