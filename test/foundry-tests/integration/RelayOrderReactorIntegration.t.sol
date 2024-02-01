@@ -10,7 +10,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {ResolvedRelayOrder, Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -163,7 +163,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -227,7 +227,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -297,7 +297,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteAverageCase");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -355,7 +355,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWorstCase");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         uint256 amountOutMin = 95 * USDC_ONE;
@@ -435,7 +435,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // build multicall data
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
-        data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder);
+        data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder, filler);
 
         ERC20 tokenIn = USDC;
         ERC20 tokenOut = DAI;
@@ -511,7 +511,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -562,7 +562,68 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         vm.expectRevert(0x675cae38); // InvalidToken()
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
+    }
+
+    function testExecuteToFeeRecipient() public {
+        ERC20 tokenIn = DAI;
+        ERC20 tokenOut = USDC;
+        ERC20 gasToken = USDC;
+
+        address feeRecipient = makeAddr("feeRecipient");
+
+        Input[] memory inputs = new Input[](2);
+        inputs[0] =
+            Input({token: address(tokenIn), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputs[1] = Input({
+            token: address(gasToken),
+            startAmount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        uint256 amountOutMin = 95 * USDC_ONE;
+
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
+        actions[0] = methodParameters.data;
+
+        OrderInfo memory info = OrderInfo({
+            reactor: IRelayOrderReactor(address(reactor)),
+            swapper: swapper,
+            nonce: 1,
+            deadline: block.timestamp + 100
+        });
+
+        RelayOrder memory order = RelayOrder({
+            info: info,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
+
+        vm.prank(filler);
+        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        reactor.execute(signedOrder, feeRecipient);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
+        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
+        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertEq(tokenIn.balanceOf(swapper), swapperInputBalanceStart - 100 * ONE, "Swapper input tokens");
+        assertGe(
+            tokenOut.balanceOf(swapper),
+            swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE,
+            "Swapper did not receive enough output"
+        );
+        assertEq(tokenOut.balanceOf((feeRecipient)), 10 * USDC_ONE, "fee recipient balance");
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)
