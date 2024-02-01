@@ -6,7 +6,7 @@ interface ReactorErrors {
     error DeadlineBeforeEndTime();
 
     /// @notice thrown when an order's end time is before its start time
-    error OrderEndTimeBeforeStartTime();
+    error EndTimeBeforeStartTime();
 
     /// @notice thrown when the order targets a different reactor
     error InvalidReactor();

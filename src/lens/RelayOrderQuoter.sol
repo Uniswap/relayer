@@ -50,7 +50,6 @@ contract RelayOrderQuoter {
         }
     }
 
-    /// @notice Return the order info of a given order (abi-encoded bytes).
     /// @param order abi-encoded order, including `reactor` as the first encoded struct member
     function parseRevertReason(bytes memory reason)
         private
@@ -59,6 +58,7 @@ contract RelayOrderQuoter {
     {
         // TODO: Can an invalid revert be > min valid reason length?
         console2.log(reason.length);
+        console2.logBytes(reason);
         if (reason.length < MIN_VALID_REASON_LENGTH) {
             assembly {
                 revert(add(32, reason), mload(reason))

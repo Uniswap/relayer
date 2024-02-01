@@ -100,4 +100,71 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
         quoter.quote(abi.encode(order), sig, address(this));
     }
+
+    function testQuoteRevertsDeadlinePassed() public {
+        uint256 deadline = block.timestamp;
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](0);
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: deadline}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        vm.warp(block.timestamp + 1);
+        vm.expectRevert(ReactorErrors.DeadlinePassed.selector);
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testQuoteRevertsEndTimeBeforeStartTime() public {
+        uint256 startTime = block.timestamp + 1;
+        uint256 endTime = block.timestamp;
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](0);
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: startTime,
+            decayEndTime: endTime,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testQuoteRevertsTransferFailed() public {
+        // no approval so transfer from permit2 will fail
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](0);
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
 }

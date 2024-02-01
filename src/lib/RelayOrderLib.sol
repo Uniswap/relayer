@@ -41,7 +41,7 @@ library RelayOrderLib {
         }
 
         if (order.decayEndTime < order.decayStartTime) {
-            revert ReactorErrors.OrderEndTimeBeforeStartTime();
+            revert ReactorErrors.EndTimeBeforeStartTime();
         }
 
         if (address(this) != address(order.info.reactor)) {
