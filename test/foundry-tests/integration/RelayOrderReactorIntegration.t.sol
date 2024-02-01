@@ -10,17 +10,16 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "UniswapX/test/util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {ResolvedRelayOrder, Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
+import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
-import {PermitExecutor} from "../../../src/sample-executors/PermitExecutor.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
 import {AddressBuilder} from "permit2/test/utils/AddressBuilder.sol";
 import {AmountBuilder} from "permit2/test/utils/AmountBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
     using stdJson for string;
@@ -48,7 +47,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     address swapper2;
     address filler;
     RelayOrderReactor reactor;
-    PermitExecutor permitExecutor;
     string json;
 
     error InvalidNonce();
@@ -72,7 +70,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
-        permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
         // Swapper max approves permit post for all input tokens
         vm.startPrank(swapper);
@@ -166,7 +163,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecute");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -230,7 +227,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -300,7 +297,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteAverageCase");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -358,7 +355,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWorstCase");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         uint256 amountOutMin = 95 * USDC_ONE;
@@ -411,9 +408,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, swapper2);
 
-        bytes memory permitData = abi.encode(
-            address(USDC), abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s)
-        );
+        bytes memory permitData =
+            abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
@@ -436,17 +432,21 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
 
+        // build multicall data
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
+        data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder, filler);
+
         ERC20 tokenIn = USDC;
         ERC20 tokenOut = DAI;
-        // in this case, gas payment will go to executor (msg.sender)
-        _checkpointBalances(swapper2, address(permitExecutor), tokenIn, tokenOut, USDC);
+        _checkpointBalances(swapper2, filler, tokenIn, tokenOut, USDC);
         // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
         // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
         _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
-        permitExecutor.executeWithPermit(signedOrder, permitData);
+        reactor.multicall(data);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -466,9 +466,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             swapperOutputBalanceStart + amountOutMin,
             "Swapper did not receive enough output"
         );
-        assertEq(
-            tokenIn.balanceOf(address(permitExecutor)), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance"
-        );
+        assertEq(tokenIn.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
     }
 
     // Testing a basic relay order where the swap's output is native ETH
@@ -513,7 +511,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
@@ -536,8 +534,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             Input({token: address(DAI), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
         inputs[1] =
             Input({token: address(USDC), startAmount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
-
-        uint256 amountOutMin = 95 * USDC_ONE;
 
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters =
@@ -564,7 +560,68 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         vm.expectRevert(0x675cae38); // InvalidToken()
-        reactor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
+    }
+
+    function testExecuteToFeeRecipient() public {
+        ERC20 tokenIn = DAI;
+        ERC20 tokenOut = USDC;
+        ERC20 gasToken = USDC;
+
+        address feeRecipient = makeAddr("feeRecipient");
+
+        Input[] memory inputs = new Input[](2);
+        inputs[0] =
+            Input({token: address(tokenIn), startAmount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
+        inputs[1] = Input({
+            token: address(gasToken),
+            startAmount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
+
+        uint256 amountOutMin = 95 * USDC_ONE;
+
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
+        actions[0] = methodParameters.data;
+
+        OrderInfo memory info = OrderInfo({
+            reactor: IRelayOrderReactor(address(reactor)),
+            swapper: swapper,
+            nonce: 1,
+            deadline: block.timestamp + 100
+        });
+
+        RelayOrder memory order = RelayOrder({
+            info: info,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
+
+        vm.prank(filler);
+        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        reactor.execute(signedOrder, feeRecipient);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
+        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
+        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertEq(tokenIn.balanceOf(swapper), swapperInputBalanceStart - 100 * ONE, "Swapper input tokens");
+        assertGe(
+            tokenOut.balanceOf(swapper),
+            swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE,
+            "Swapper did not receive enough output"
+        );
+        assertEq(tokenOut.balanceOf((feeRecipient)), 10 * USDC_ONE, "fee recipient balance");
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

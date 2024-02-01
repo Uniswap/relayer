@@ -6,7 +6,7 @@ import {RelayOrderQuoter} from "../../src/lens/RelayOrderQuoter.sol";
 import {RelayOrder} from "../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
-import {Input, ResolvedRelayOrder} from "../../src/base/ReactorStructs.sol";
+import {Input} from "../../src/base/ReactorStructs.sol";
 import {MockERC20} from "./util/mock/MockERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
@@ -14,6 +14,7 @@ import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
 import {PermitSignature} from "./util/PermitSignature.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {ReactorErrors} from "../../src/base/ReactorErrors.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     RelayOrderQuoter quoter;
@@ -73,10 +74,9 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
             inputs: inputs
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-        ResolvedRelayOrder memory quote = quoter.quote(abi.encode(order), sig);
-        assertEq(address(quote.details[0].to), address(quoter));
-        assertEq(quote.details[0].requestedAmount, ONE);
-        assertEq(quote.permit.permitted[0].token, address(tokenIn));
+        ISignatureTransfer.SignatureTransferDetails[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
+        assertEq(address(quote[0].to), address(this));
+        assertEq(quote[0].requestedAmount, ONE);
     }
 
     function testQuoteRevertsDeadlineBeforeEndTime() public {
@@ -98,6 +98,6 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
-        quoter.quote(abi.encode(order), sig);
+        quoter.quote(abi.encode(order), sig, address(this));
     }
 }
