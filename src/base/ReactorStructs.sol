@@ -36,6 +36,7 @@ struct OrderInfo {
 
 /// @notice Every RelayOrder input is defined by a token, recipient,
 /// and amounts that define the start and end amounts on the decay curve.
+/// @dev These values are signed by the user. address(0) will set the recipient at run-time to the passed in feeRecipient value.
 struct Input {
     address token;
     address recipient;
@@ -43,11 +44,8 @@ struct Input {
     uint256 maxAmount;
 }
 
-struct ResolvedRelayOrder {
-    address swapper;
-    bytes[] actions;
-    ISignatureTransfer.PermitBatchTransferFrom permit;
-    ISignatureTransfer.SignatureTransferDetails[] details; // built from recipient and decayed amounts
-    bytes sig;
-    bytes32 hash;
+/// @notice Minimal information to return for a quoter.
+struct ResolvedTransferDetails {
+    ISignatureTransfer.SignatureTransferDetails[] transferDetails; // these are the resolved input amounts
+    bytes32 orderHash;
 }

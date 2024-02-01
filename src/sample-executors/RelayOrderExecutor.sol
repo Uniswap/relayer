@@ -37,7 +37,7 @@ contract RelayOrderExecutor is Owned {
     /// @notice Shortcut to execute a single relay order
     /// @param order The order to execute
     function execute(SignedOrder calldata order) external onlyWhitelistedCaller {
-        reactor.execute(order);
+        reactor.execute(order, address(this));
     }
 
     /// @notice Call multiple functions on the reactor

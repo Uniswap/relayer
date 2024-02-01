@@ -8,7 +8,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
-import {Input, OrderInfo, ResolvedRelayOrder} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo} from "../../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
