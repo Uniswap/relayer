@@ -535,8 +535,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         inputs[1] =
             Input({token: address(USDC), startAmount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
 
-        uint256 amountOutMin = 95 * USDC_ONE;
-
         bytes[] memory actions = new bytes[](1);
         MethodParameters memory methodParameters =
             readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_REACTOR_WITH_SWEEP");
