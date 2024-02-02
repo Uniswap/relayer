@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IReactor} from "UniswapX/src/interfaces/IReactor.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
 /// @dev Note that all of these fields are signed over. Some are hashed in the base permit and some are hashed in the passed in witness.
 /// We construct the permit details and witness information.
@@ -24,7 +24,7 @@ struct OrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper
     // signature commits to the specific reactor that they trust to fill their order properly
-    IReactor reactor;
+    IRelayOrderReactor reactor;
     // The address of the user which created the order
     // Note that this must be included so that order hashes are unique by swapper
     address swapper;
@@ -36,6 +36,7 @@ struct OrderInfo {
 
 /// @notice Every RelayOrder input is defined by a token, recipient,
 /// and amounts that define the start and end amounts on the decay curve.
+/// @dev These values are signed by the user. address(0) will set the recipient at run-time to the passed in feeRecipient value.
 struct Input {
     address token;
     address recipient;
@@ -43,11 +44,8 @@ struct Input {
     uint256 maxAmount;
 }
 
-struct ResolvedRelayOrder {
-    address swapper;
-    bytes[] actions;
-    ISignatureTransfer.PermitBatchTransferFrom permit;
-    ISignatureTransfer.SignatureTransferDetails[] details; // built from recipient and decayed amounts
-    bytes sig;
-    bytes32 hash;
+/// @notice Minimal information to return for a quoter.
+struct ResolvedTransferDetails {
+    ISignatureTransfer.SignatureTransferDetails[] transferDetails; // these are the resolved input amounts
+    bytes32 orderHash;
 }

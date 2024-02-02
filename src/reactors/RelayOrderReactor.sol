@@ -1,25 +1,29 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {ResolvedRelayOrder, RelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedTransferDetails, RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {Multicall} from "../base/Multicall.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
-import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {ActionsLib} from "../lib/ActionsLib.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRelayOrderReactor {
-    using ResolvedRelayOrderLib for ResolvedRelayOrder;
+contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
-    /// @notice permit2 address used for token transfers and signature verification
+    using ActionsLib for bytes[];
 
+    /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
+    /// @notice Actions only execute on the universal router.
     address public immutable universalRouter;
 
     constructor(IPermit2 _permit2, address _universalRouter) {
@@ -27,66 +31,22 @@ contract RelayOrderReactor is ReactorEvents, ReactorErrors, ReentrancyGuard, IRe
         universalRouter = _universalRouter;
     }
 
-    function execute(SignedOrder calldata order) external nonReentrant {
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
-        resolvedOrders[0] = resolve(order);
-
-        _handleResolvedOrders(resolvedOrders);
-    }
-
-    function executeBatch(SignedOrder[] calldata orders) external nonReentrant {
-        uint256 ordersLength = orders.length;
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
-
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                resolvedOrders[i] = resolve(orders[i]);
-            }
-        }
-
-        _handleResolvedOrders(resolvedOrders);
-    }
-
-    function _handleResolvedOrders(ResolvedRelayOrder[] memory orders) private {
-        uint256 ordersLength = orders.length;
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory order = orders[i];
-                order.transferInputTokens(permit2);
-                executeActions(order.actions);
-                emit Fill(order.hash, msg.sender, order.swapper, order.permit.nonce);
-            }
-        }
-    }
-
-    function resolve(SignedOrder memory signedOrder) internal view returns (ResolvedRelayOrder memory resolvedOrder) {
-        // Validate the order before resolving.
-        RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
+    // TODO: Consider adding nonReentrant.
+    function execute(SignedOrder calldata signedOrder, address feeRecipient)
+        external
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory transferDetails)
+    {
+        (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
-
-        return ResolvedRelayOrder({
-            swapper: order.info.swapper,
-            actions: order.actions,
-            permit: order.toPermit(),
-            details: order.toTransferDetails(),
-            sig: signedOrder.sig,
-            hash: order.hash()
-        });
+        bytes32 orderHash = order.hash();
+        (transferDetails) = order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
+        order.actions.execute(universalRouter);
+        emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
-    function executeActions(bytes[] memory actions) internal {
-        uint256 actionsLength = actions.length;
-        for (uint256 i = 0; i < actionsLength;) {
-            (bool success, bytes memory result) = universalRouter.call(actions[i]);
-            if (!success) {
-                // bubble up all errors, including custom errors which are encoded like functions
-                assembly {
-                    revert(add(result, 0x20), mload(result))
-                }
-            }
-            unchecked {
-                i++;
-            }
-        }
+    function permit(ERC20 token, bytes calldata data) external {
+        (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
+        Permit2Lib.permit2(token, _owner, spender, value, deadline, v, r, s);
     }
 }

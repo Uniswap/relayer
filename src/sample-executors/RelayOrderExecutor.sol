@@ -6,17 +6,20 @@ import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
+import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
-/// @notice A simple fill contract that relays 2612 style permits on chain before filling a Relay order
-contract PermitExecutor is Owned {
+/// @notice Sample executor for Relay orders
+contract RelayOrderExecutor is Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
     /// @notice thrown if this contract is called by an address other than the whitelisted caller
     error CallerNotWhitelisted();
 
-    address private immutable whitelistedCaller;
+    event WhitelistedCallerChanged(address indexed newWhitelistedCaller);
+
+    address private whitelistedCaller;
     IRelayOrderReactor private immutable reactor;
 
     modifier onlyWhitelistedCaller() {
@@ -31,43 +34,18 @@ contract PermitExecutor is Owned {
         reactor = _reactor;
     }
 
-    /// @notice the reactor performs no verification that the user's signed permit is executed correctly
-    ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
-    /// @dev assume 2612 permit is collected offchain
-    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData)
-        external
-        payable
-        onlyWhitelistedCaller
-    {
-        _permit(permitData);
-        reactor.execute(order);
+    /// @notice Shortcut to execute a single relay order
+    /// @param order The order to execute
+    function execute(SignedOrder calldata order) external onlyWhitelistedCaller {
+        reactor.execute(order, address(this));
     }
 
-    /// @notice assume that we already have all output tokens
-    /// @dev assume 2612 permits are collected offchain
-    function executeBatchWithPermit(SignedOrder[] calldata orders, bytes[] calldata permitData)
-        external
-        payable
-        onlyWhitelistedCaller
-    {
-        _permitBatch(permitData);
-        reactor.executeBatch(orders);
-    }
-
-    /// @notice execute a signed 2612-style permit
-    /// the transaction will revert if the permit cannot be executed
-    /// must be called before the call to the reactor
-    function _permit(bytes calldata permitData) internal {
-        (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
-        (address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
-            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        ERC20(token).permit(owner, spender, value, deadline, v, r, s);
-    }
-
-    function _permitBatch(bytes[] calldata permitData) internal {
-        for (uint256 i = 0; i < permitData.length; i++) {
-            _permit(permitData[i]);
-        }
+    /// @notice Call multiple functions on the reactor
+    /// @param data encoded function data for each of the calls
+    /// @return results return values from each of the calls
+    /// @dev use for execute batch and 2612 permits
+    function multicall(bytes[] calldata data) external onlyWhitelistedCaller returns (bytes[] memory results) {
+        return reactor.multicall(data);
     }
 
     /// @notice Transfer all tokens in this contract to the recipient. Can only be called by owner.
@@ -84,6 +62,13 @@ contract PermitExecutor is Owned {
     /// @param recipient The recipient of the ETH
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Change the whitelisted caller
+    /// @param newWhitelistedCaller The new whitelisted caller
+    function changeWhitelistedCaller(address newWhitelistedCaller) external onlyOwner {
+        whitelistedCaller = newWhitelistedCaller;
+        emit WhitelistedCallerChanged(newWhitelistedCaller);
     }
 
     receive() external payable {}
