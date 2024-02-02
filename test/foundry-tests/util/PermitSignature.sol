@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console2} from "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -63,9 +64,8 @@ contract PermitSignature is Test {
 
         bytes32 msgHash = ECDSA.toTypedDataHash(
             _domainSeparatorV4(permit2),
-            keccak256(
+            keccak256(       
                 abi.encode(
-                    // TODO: fix for batch permit
                     typeHash,
                     keccak256(abi.encodePacked(tokenPermissionHashes)),
                     spender,
