@@ -15,6 +15,9 @@ import {PermitSignature} from "./util/PermitSignature.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {ReactorErrors} from "../../src/base/ReactorErrors.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {MockUniversalRouter} from "./util/mock/MockUniversalRouter.sol";
+import {InvalidNonce} from "permit2/src/PermitErrors.sol";
+import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
 
 contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     RelayOrderQuoter quoter;
@@ -24,6 +27,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     address swapper;
     IPermit2 permit2;
     uint256 swapperPrivateKey;
+    MockUniversalRouter universalRouter;
 
     uint256 constant ONE = 10 ** 18;
 
@@ -31,8 +35,8 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         quoter = new RelayOrderQuoter();
         tokenIn = new MockERC20("Input", "IN", 18);
         permit2 = IPermit2(deployPermit2());
-        // Use actions len = 0 to ensure we're not calling addr 0.
-        reactor = new RelayOrderReactor(permit2, address(0));
+        universalRouter = new MockUniversalRouter();
+        reactor = new RelayOrderReactor(permit2, address(universalRouter));
 
         swapperPrivateKey = 0x1234;
         swapper = vm.addr(swapperPrivateKey);
@@ -62,6 +66,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
 
         Input[] memory inputs = new Input[](1);
+        // Actions len = 0 to avoid the revert in UR.
         bytes[] memory actions = new bytes[](0);
 
         inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
@@ -165,6 +170,74 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
 
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         vm.expectRevert("TRANSFER_FROM_FAILED");
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testQuoteRevertsUniversalRouterError() public {
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](1);
+        actions[0] = abi.encode(bytes4(keccak256("FakeSelector()"))); // Will just execute the fallback call and revert.
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        vm.expectRevert(MockUniversalRouter.UniversalRouterError.selector);
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testRevertInvalidNonce() public {
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](0);
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        vm.prank(swapper);
+        permit2.invalidateUnorderedNonces(0, 1); // Invalidates the first nonce.
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        vm.expectRevert(InvalidNonce.selector);
+        quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testRevertInvalidSigner() public {
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
+        Input[] memory inputs = new Input[](1);
+        bytes[] memory actions = new bytes[](0);
+
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp,
+            actions: actions,
+            inputs: inputs
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        order.info.swapper = address(0xbeef); // Incorrect swapper;
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         quoter.quote(abi.encode(order), sig, address(this));
     }
 }
