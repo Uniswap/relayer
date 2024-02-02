@@ -6,6 +6,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {RelayOrder} from "../base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IMulticall} from "../interfaces/IMulticall.sol";
 
 import "forge-std/console2.sol";
 
@@ -25,24 +26,39 @@ contract RelayOrderQuoter {
         external
         returns (ISignatureTransfer.SignatureTransferDetails[] memory result)
     {
-        bytes memory selector =
-            abi.encodeWithSelector(RelayOrderQuoter.executeAndRevert.selector, order, sig, feeRecipient);
-        (bool success, bytes memory reason) = address(this).call(selector);
+        bytes memory executeSelector =
+            abi.encodeWithSelector(IRelayOrderReactor.execute.selector, SignedOrder(order, sig), feeRecipient);
+        return _callSelf(address(getReactor(order)), executeSelector);
+    }
+
+    function quoteMulticall(bytes calldata multicallData, address reactor)
+        external
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory result)
+    {
+        bytes memory multicallSelector = abi.encodeWithSelector(IMulticall.multicall.selector, multicallData);
+        return _callSelf(reactor, multicallSelector);
+    }
+
+    function _callSelf(address reactor, bytes memory reactorSelector)
+        internal
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory result)
+    {
+        bytes memory callAndRevert =
+            abi.encodeWithSelector(RelayOrderQuoter.callAndRevert.selector, reactor, reactorSelector);
+        (bool success, bytes memory reason) = address(this).call(callAndRevert);
         if (!success) {
             result = parseRevertReason(reason);
         }
     }
 
-    function executeAndRevert(bytes calldata order, bytes calldata sig, address feeRecipient) external {
-        ISignatureTransfer.SignatureTransferDetails[] memory result =
-            IRelayOrderReactor(getReactor(order)).execute(SignedOrder(order, sig), feeRecipient);
-        bytes memory encodedOrder = abi.encode(result);
+    function callAndRevert(address reactor, bytes calldata selector) external {
+        (bool success, bytes memory result) = reactor.call(selector);
         assembly {
-            revert(add(32, encodedOrder), mload(encodedOrder))
+            revert(add(32, result), mload(result))
         }
     }
 
-    /// TODO: Definitely overkill but keeping it for now since we are still using SignedOrder as the arg for execute and it parallels the UniswapX order quoter.
+    /// @notice parses the reactor from the order
     function getReactor(bytes memory order) public pure returns (IRelayOrderReactor reactor) {
         assembly {
             let orderInfoOffsetPointer := add(order, ORDER_INFO_OFFSET)
