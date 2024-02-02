@@ -65,7 +65,6 @@ contract PermitSignature is Test {
             _domainSeparatorV4(permit2),
             keccak256(
                 abi.encode(
-                    // TODO: fix for batch permit
                     typeHash,
                     keccak256(abi.encodePacked(tokenPermissionHashes)),
                     spender,

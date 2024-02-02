@@ -105,7 +105,7 @@ library RelayOrderLib {
                 keccak256(abi.encodePacked(recipients)),
                 order.decayStartTime,
                 order.decayEndTime,
-                abi.encodePacked(hashedActions)
+                keccak256(abi.encodePacked(hashedActions))
             )
         );
     }

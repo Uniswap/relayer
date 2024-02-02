@@ -5,14 +5,12 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
 /// @notice Sample executor for Relay orders
 contract RelayOrderExecutor is Owned {
     using SafeTransferLib for ERC20;
-    using CurrencyLibrary for address;
 
     /// @notice thrown if this contract is called by an address other than the whitelisted caller
     error CallerNotWhitelisted();
