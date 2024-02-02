@@ -18,6 +18,8 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {MockUniversalRouter} from "./util/mock/MockUniversalRouter.sol";
 import {InvalidNonce} from "permit2/src/PermitErrors.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {IMulticall} from "../../src/interfaces/IMulticall.sol";
 
 contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     RelayOrderQuoter quoter;
@@ -82,6 +84,103 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         ISignatureTransfer.SignatureTransferDetails[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
         assertEq(address(quote[0].to), address(this));
         assertEq(quote[0].requestedAmount, ONE);
+    }
+
+    function testQuoteMulticall() public {
+        /// Sign usdc permit.
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                tokenIn.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        swapper,
+                        address(permit2),
+                        type(uint256).max - 1, // infinite approval
+                        tokenIn.nonces(swapper),
+                        type(uint256).max - 1 // infinite deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapperPrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, swapper);
+
+        bytes memory permitData =
+            abi.encode(swapper, address(permit2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
+
+        Input[] memory inputs = new Input[](1);
+        // Actions len = 0 to avoid the revert in UR.
+        bytes[] memory actions = new bytes[](0);
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp + 100}),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            actions: actions,
+            inputs: inputs
+        });
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+
+        bytes[] memory multicallData = new bytes[](2);
+        // Permit tokenIn
+        multicallData[0] = abi.encodeWithSelector(IRelayOrderReactor.permit.selector, tokenIn, permitData);
+        // Transfer tokenIn
+        multicallData[1] = abi.encodeWithSelector(
+            IRelayOrderReactor.execute.selector, SignedOrder(abi.encode(order), sig), address(this)
+        );
+
+        bytes[] memory quote = quoter.quoteMulticall(address(reactor), multicallData);
+        bytes memory permitResult = quote[0];
+        (ISignatureTransfer.SignatureTransferDetails[] memory transferResult) =
+            abi.decode(quote[1], (ISignatureTransfer.SignatureTransferDetails[]));
+
+        assertEq(permitResult.length, 0); // permit returns nothing
+
+        assertEq(transferResult.length, 1);
+        assertEq(address(transferResult[0].to), address(this));
+        assertEq(transferResult[0].requestedAmount, ONE);
+    }
+
+    function testQuoteMulticallMinimal() public {
+        /// Sign usdc permit.
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                tokenIn.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        swapper,
+                        address(permit2),
+                        type(uint256).max - 1, // infinite approval
+                        tokenIn.nonces(swapper),
+                        type(uint256).max - 1 // infinite deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapperPrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, swapper);
+
+        bytes memory permitData =
+            abi.encode(swapper, address(permit2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
+
+        bytes[] memory multicallData = new bytes[](1);
+
+        multicallData[0] = abi.encodeWithSelector(IRelayOrderReactor.permit.selector, tokenIn, permitData);
+
+        bytes[] memory quote = quoter.quoteMulticall(address(reactor), multicallData);
+        bytes memory permitResult = quote[0];
+
+        assertEq(quote.length, 1); // Only permit result is returned
+        assertEq(permitResult.length, 0); // Permit returns nothing
     }
 
     function testQuoteRevertsDeadlineBeforeEndTime() public {
@@ -150,6 +249,60 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
         quoter.quote(abi.encode(order), sig, address(this));
+    }
+
+    function testQuoteMulticallRevertsEndTimeBeforeStartTime() public {
+        /// Sign usdc permit.
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                tokenIn.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        swapper,
+                        address(permit2),
+                        type(uint256).max - 1, // infinite approval
+                        tokenIn.nonces(swapper),
+                        type(uint256).max - 1 // infinite deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapperPrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, swapper);
+
+        bytes memory permitData =
+            abi.encode(swapper, address(permit2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
+
+        Input[] memory inputs = new Input[](1);
+        // Actions len = 0 to avoid the revert in UR.
+        bytes[] memory actions = new bytes[](0);
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+
+        uint256 startTime = block.timestamp + 1;
+        uint256 endTime = block.timestamp;
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
+            decayStartTime: startTime,
+            decayEndTime: endTime,
+            actions: actions,
+            inputs: inputs
+        });
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+
+        bytes[] memory multicallData = new bytes[](2);
+        // Permit tokenIn
+        multicallData[0] = abi.encodeWithSelector(IRelayOrderReactor.permit.selector, tokenIn, permitData);
+        // Transfer tokenIn
+        multicallData[1] = abi.encodeWithSelector(
+            IRelayOrderReactor.execute.selector, SignedOrder(abi.encode(order), sig), address(this)
+        );
+
+        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
+        quoter.quoteMulticall(address(reactor), multicallData);
     }
 
     function testQuoteRevertsTransferFailed() public {
