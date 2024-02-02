@@ -8,7 +8,8 @@ import {RelayOrder} from "../base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IMulticall} from "../interfaces/IMulticall.sol";
 
-// TODO: Add multicall support.
+/// @notice Quoter to be called off-chain to simulate orders to the RelayOrderReactor.
+/// Supports calls to execute and multicall.
 contract RelayOrderQuoter {
     // 32 bytes since OrderInfo struct is statically encoded and the reactor is the first member of that struct.
     uint256 constant ORDER_INFO_OFFSET = 32;
@@ -64,7 +65,7 @@ contract RelayOrderQuoter {
     function parseRevertReason(
         bytes memory reason // ISignatureTransfer[]
     ) private pure returns (ISignatureTransfer.SignatureTransferDetails[] memory order) {
-        // TODO: Can an invalid revert be > min valid reason length?
+        // Note that the decoding will error if there are invalid results that error with data > min valid reason (128).
         if (reason.length < MIN_VALID_REASON_LENGTH) {
             assembly {
                 revert(add(32, reason), mload(reason))
@@ -75,6 +76,7 @@ contract RelayOrderQuoter {
     }
 
     function parseMulticallRevertReason(bytes memory reason) private pure returns (bytes[] memory) {
+        // Note that the decoding will error if there are invalid results that error with data > min valid reason (128).
         if (reason.length < MIN_VALID_REASON_LENGTH) {
             assembly {
                 revert(add(32, reason), mload(reason))
