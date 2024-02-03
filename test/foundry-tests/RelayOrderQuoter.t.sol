@@ -16,7 +16,6 @@ import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {ReactorErrors} from "../../src/base/ReactorErrors.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {MockUniversalRouter} from "./util/mock/MockUniversalRouter.sol";
-import {InvalidNonce} from "permit2/src/PermitErrors.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {IMulticall} from "../../src/interfaces/IMulticall.sol";
@@ -32,6 +31,8 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     MockUniversalRouter universalRouter;
 
     uint256 constant ONE = 10 ** 18;
+
+    error InvalidNonce();
 
     function setUp() public {
         quoter = new RelayOrderQuoter();
