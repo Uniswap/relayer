@@ -63,7 +63,7 @@ contract PermitSignature is Test {
 
         bytes32 msgHash = ECDSA.toTypedDataHash(
             _domainSeparatorV4(permit2),
-            keccak256(       
+            keccak256(
                 abi.encode(
                     typeHash,
                     keccak256(abi.encodePacked(tokenPermissionHashes)),
