@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {RelayOrderQuoter} from "../../src/lens/RelayOrderQuoter.sol";
-import {RelayOrder} from "../../src/base/ReactorStructs.sol";
+import {RelayOrder, ResolvedInput} from "../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
 import {Input} from "../../src/base/ReactorStructs.sol";
@@ -14,7 +14,6 @@ import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
 import {PermitSignature} from "./util/PermitSignature.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
 import {ReactorErrors} from "../../src/base/ReactorErrors.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {MockUniversalRouter} from "./util/mock/MockUniversalRouter.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
@@ -82,13 +81,14 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
             inputs: inputs
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-        ISignatureTransfer.SignatureTransferDetails[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
-        assertEq(address(quote[0].to), address(this));
-        assertEq(quote[0].requestedAmount, ONE);
+        ResolvedInput[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
+        assertEq(address(quote[0].recipient), address(this));
+        assertEq(quote[0].amount, ONE);
+        assertEq(quote[0].token, address(tokenIn));
     }
 
     function testQuoteMulticall() public {
-        /// Sign usdc permit.
+        /// Sign tokenIn permit.
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -137,14 +137,14 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
 
         bytes[] memory quote = quoter.quoteMulticall(address(reactor), multicallData);
         bytes memory permitResult = quote[0];
-        (ISignatureTransfer.SignatureTransferDetails[] memory transferResult) =
-            abi.decode(quote[1], (ISignatureTransfer.SignatureTransferDetails[]));
+        (ResolvedInput[] memory transferResult) = abi.decode(quote[1], (ResolvedInput[]));
 
         assertEq(permitResult.length, 0); // permit returns nothing
 
         assertEq(transferResult.length, 1);
-        assertEq(address(transferResult[0].to), address(this));
-        assertEq(transferResult[0].requestedAmount, ONE);
+        assertEq(address(transferResult[0].recipient), address(this));
+        assertEq(transferResult[0].amount, ONE);
+        assertEq(transferResult[0].token, address(tokenIn));
     }
 
     function testQuoteMulticallMinimal() public {
