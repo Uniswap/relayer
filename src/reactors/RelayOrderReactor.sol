@@ -39,7 +39,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
         bytes32 orderHash = order.hash();
-        (resolvedInputs) = order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
+        resolvedInputs = order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
         order.actions.execute(universalRouter);
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
