@@ -13,7 +13,6 @@ import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
-import {RelayOrderExecutor} from "../../../src/sample-executors/RelayOrderExecutor.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
