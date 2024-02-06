@@ -50,9 +50,3 @@ struct ResolvedInput {
     address recipient;
     uint256 amount;
 }
-
-/// @notice Minimal information to return for a quoter.
-struct ResolvedTransferDetails {
-    ISignatureTransfer.SignatureTransferDetails[] transferDetails; // these are the resolved input amounts
-    bytes32 orderHash;
-}
