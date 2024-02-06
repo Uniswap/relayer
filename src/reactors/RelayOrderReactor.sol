@@ -31,7 +31,6 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
-    // TODO: Consider adding nonReentrant.
     function execute(SignedOrder calldata signedOrder, address feeRecipient)
         external
         returns (ResolvedInput[] memory resolvedInputs)

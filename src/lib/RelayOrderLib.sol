@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.2;
 
-import {RelayDecayLib} from "./RelayDecayLib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {RelayOrder, Input, ResolvedInput} from "../base/ReactorStructs.sol";
-import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
+import {RelayOrder, Input, ResolvedInput} from "../base/ReactorStructs.sol";
+import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputsLib} from "./InputsLib.sol";
 
 library RelayOrderLib {
