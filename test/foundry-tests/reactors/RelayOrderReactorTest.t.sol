@@ -28,16 +28,12 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address filler;
     address constant MOCK_UNIVERSAL_ROUTER = address(0);
 
-    RelayOrderExecutor executor;
-
     event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     error InvalidNonce();
 
     function setUp() public {
-        vm.chainId(1);
-
         tokenIn = new MockERC20("Input", "IN", 18);
 
         swapperPrivateKey = 0x12341234;
@@ -48,8 +44,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         permit2 = IPermit2(deployPermit2());
 
         reactor = new RelayOrderReactor(permit2, MOCK_UNIVERSAL_ROUTER);
-        // filler is also owner of executor
-        executor = new RelayOrderExecutor(filler, IRelayOrderReactor(reactor), filler);
 
         // swapper approves permit2 to transfer tokens
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
@@ -63,8 +57,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-        tokenIn.mint(address(executor), uint256(inputAmount) * 100);
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         Input[] memory inputs = new Input[](1);
         inputs[0] = Input({
@@ -89,30 +81,26 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        uint256 executorTokenInBefore = tokenIn.balanceOf(address(executor));
-
         // warp to 25% way through the decay
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(executor), swapper, order.info.nonce);
+        emit Fill(orderHash, address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         snapStart("ExecuteSingle");
-        executor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
         snapEnd();
 
-        assertEq(tokenIn.balanceOf(address(executor)), executorTokenInBefore + 250000000000000000);
+        assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
     }
 
-    function testExecuteInvalidReactor() public {
+    function testExecuteRevertsInvalidReactor() public {
         uint256 inputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
         address otherReactor = vm.addr(0xdead);
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-        tokenIn.mint(address(executor), uint256(inputAmount) * 100);
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         Input[] memory inputs = new Input[](1);
         inputs[0] = Input({
@@ -138,17 +126,14 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         vm.prank(filler);
         vm.expectRevert(ReactorErrors.InvalidReactor.selector);
-        executor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteDeadlinePassed() public {
+    function testExecuteRevertsDeadlinePassed() public {
         uint256 inputAmount = 1 ether;
         uint256 deadline = block.timestamp - 1;
-        address otherReactor = vm.addr(0xdead);
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-        tokenIn.mint(address(executor), uint256(inputAmount) * 100);
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         Input[] memory inputs = new Input[](1);
         inputs[0] = Input({
@@ -162,7 +147,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         bytes[] memory actions = new bytes[](0);
 
         RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(otherReactor), swapper: swapper, nonce: 0, deadline: deadline}),
+            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
             decayStartTime: block.timestamp,
             decayEndTime: deadline,
             actions: actions,
@@ -174,16 +159,14 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         vm.prank(filler);
         vm.expectRevert(ReactorErrors.DeadlinePassed.selector);
-        executor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteNonceReuse() public {
+    function testExecuteRevertsInvalidNonce() public {
         uint256 inputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-        tokenIn.mint(address(executor), uint256(inputAmount) * 100);
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         Input[] memory inputs = new Input[](1);
         inputs[0] = Input({
@@ -208,17 +191,15 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        uint256 executorTokenInBefore = tokenIn.balanceOf(address(executor));
-
         // warp to 25% way through the decay
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(executor), swapper, order.info.nonce);
+        emit Fill(orderHash, address(filler), swapper, order.info.nonce);
         // expect we can execute the first order
         vm.prank(filler);
-        executor.execute(signedOrder);
-        assertEq(tokenIn.balanceOf(address(executor)), executorTokenInBefore + 250000000000000000);
+        reactor.execute(signedOrder, filler);
+        assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
 
         // change deadline to sig and orderHash are different
         order.info.deadline = block.timestamp + 1500;
@@ -227,6 +208,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         // expect revert
         vm.prank(filler);
         vm.expectRevert(InvalidNonce.selector);
-        executor.execute(signedOrder);
+        reactor.execute(signedOrder, filler);
     }
 }
