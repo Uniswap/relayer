@@ -2,22 +2,19 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {RelayOrderQuoter} from "../../src/lens/RelayOrderQuoter.sol";
-import {RelayOrder, ResolvedInput} from "../../src/base/ReactorStructs.sol";
-import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
-import {OrderInfo} from "../../src/base/ReactorStructs.sol";
-import {Input} from "../../src/base/ReactorStructs.sol";
-import {MockERC20} from "./util/mock/MockERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
-import {IRelayOrderReactor} from "../../src/interfaces/IRelayOrderReactor.sol";
-import {PermitSignature} from "./util/PermitSignature.sol";
-import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
-import {ReactorErrors} from "../../src/base/ReactorErrors.sol";
-import {MockUniversalRouter} from "./util/mock/MockUniversalRouter.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
+import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {IMulticall} from "../../src/interfaces/IMulticall.sol";
+import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
+import {RelayOrderQuoter} from "../../../src/lens/RelayOrderQuoter.sol";
+import {Input, OrderInfo, RelayOrder, ResolvedInput} from "../../../src/base/ReactorStructs.sol";
+import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
+import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
+import {IMulticall} from "../../../src/interfaces/IMulticall.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
 
 contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     RelayOrderQuoter quoter;
