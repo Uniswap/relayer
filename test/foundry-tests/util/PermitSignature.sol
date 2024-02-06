@@ -30,12 +30,8 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        ISignatureTransfer.TokenPermissions[] memory permissions =
-            new ISignatureTransfer.TokenPermissions[](order.inputs.length);
-        for (uint256 i = 0; i < order.inputs.length; i++) {
-            Input memory input = order.inputs[i];
-            permissions[i] = ISignatureTransfer.TokenPermissions({token: input.token, amount: input.maxAmount});
-        }
+        ISignatureTransfer.TokenPermissions[] memory permissions = order.inputs.toPermit();
+
         ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
             permitted: permissions,
             nonce: order.info.nonce,

@@ -44,8 +44,9 @@ struct Input {
     uint256 maxAmount;
 }
 
-/// @notice Minimal information to return for a quoter.
-struct ResolvedTransferDetails {
-    ISignatureTransfer.SignatureTransferDetails[] transferDetails; // these are the resolved input amounts
-    bytes32 orderHash;
+/// @notice Contains the final resolved transfer information. Amounts are decayed and feeRecipient is returned.
+struct ResolvedInput {
+    address token;
+    address recipient;
+    uint256 amount;
 }
