@@ -32,6 +32,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     error InvalidNonce();
+    error SignatureExpired(uint256 deadline);
 
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -129,9 +130,9 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteRevertsDeadlinePassed() public {
+    function testExecuteRevertsSignatureExpired() public {
         uint256 inputAmount = 1 ether;
-        uint256 deadline = block.timestamp - 1;
+        uint256 deadline = block.timestamp + 10;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
 
@@ -157,8 +158,9 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
+        vm.warp(block.timestamp + 20);
         vm.prank(filler);
-        vm.expectRevert(ReactorErrors.DeadlinePassed.selector);
+        vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         reactor.execute(signedOrder, filler);
     }
 
@@ -208,6 +210,74 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         // expect revert
         vm.prank(filler);
         vm.expectRevert(InvalidNonce.selector);
+        reactor.execute(signedOrder, filler);
+    }
+
+    function testExecuteRevertsEndTimeBeforeStartTime() public {
+        uint256 inputAmount = 1 ether;
+        uint256 startTime = block.timestamp + 20;
+        uint256 endTime = block.timestamp + 10;
+
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+
+        Input[] memory inputs = new Input[](1);
+        inputs[0] = Input({
+            token: address(tokenIn),
+            startAmount: 0,
+            maxAmount: inputAmount,
+            // sending to filler
+            recipient: address(0)
+        });
+
+        bytes[] memory actions = new bytes[](0);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: endTime}),
+            decayStartTime: startTime,
+            decayEndTime: endTime,
+            actions: actions,
+            inputs: inputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.prank(filler);
+        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
+        reactor.execute(signedOrder, filler);
+    }
+
+    function testExecuteRevertsDeadlineBeforeEndTime() public {
+        uint256 inputAmount = 1 ether;
+        uint256 endTime = block.timestamp + 20;
+        uint256 deadline = block.timestamp + 10;
+
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+
+        Input[] memory inputs = new Input[](1);
+        inputs[0] = Input({
+            token: address(tokenIn),
+            startAmount: 0,
+            maxAmount: inputAmount,
+            // sending to filler
+            recipient: address(0)
+        });
+
+        bytes[] memory actions = new bytes[](0);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
+            decayStartTime: block.timestamp,
+            decayEndTime: endTime,
+            actions: actions,
+            inputs: inputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.prank(filler);
+        vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
         reactor.execute(signedOrder, filler);
     }
 }

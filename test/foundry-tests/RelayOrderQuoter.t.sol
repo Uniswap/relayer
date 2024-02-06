@@ -32,6 +32,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     uint256 constant ONE = 10 ** 18;
 
     error InvalidNonce();
+    error SignatureExpired(uint256 deadline);
 
     function setUp() public {
         quoter = new RelayOrderQuoter();
@@ -206,7 +207,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         quoter.quote(abi.encode(order), sig, address(this));
     }
 
-    function testQuoteRevertsDeadlinePassed() public {
+    function testQuoteRevertsSignatureExpired() public {
         uint256 deadline = block.timestamp;
         tokenIn.forceApprove(swapper, address(permit2), ONE);
 
@@ -225,7 +226,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
 
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         vm.warp(block.timestamp + 1);
-        vm.expectRevert(ReactorErrors.DeadlinePassed.selector);
+        vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         quoter.quote(abi.encode(order), sig, address(this));
     }
 
