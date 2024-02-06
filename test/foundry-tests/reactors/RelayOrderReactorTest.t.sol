@@ -15,9 +15,16 @@ import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {RelayOrderExecutor} from "../../../src/sample-executors/RelayOrderExecutor.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {InputBuilder} from "../util/InputBuilder.sol";
+import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
+import {ONE} from "../util/Constants.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
+    using OrderInfoBuilder for OrderInfo;
+    using InputBuilder for Input;
+    using RelayOrderBuilder for RelayOrder;
 
     MockERC20 tokenIn;
     IPermit2 permit2;
@@ -53,31 +60,14 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
     /// @dev Test of a simple execute
     /// @dev this order has no actions and its inputs decay from 0 ether to 1 ether
-    function testExecuteSingle() public {
-        uint256 inputAmount = 1 ether;
-        uint256 deadline = block.timestamp + 1000;
-
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+    function test_execute_withDecay() public {
+        tokenIn.mint(address(swapper), ONE * 100);
 
         Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
-
-        bytes[] memory actions = new bytes[](0);
-
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: deadline,
-            actions: actions,
-            inputs: inputs
-        });
-        bytes32 orderHash = order.hash();
+        inputs[0] = InputBuilder.init(tokenIn).withStartAmount(0); // Decay from 0 to 1.
+        OrderInfo memory orderInfo =
+            OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs).withEndTime(block.timestamp + 1000);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -86,42 +76,85 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(filler), swapper, order.info.nonce);
+        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
-        snapStart("ExecuteSingle");
         reactor.execute(signedOrder, filler);
-        snapEnd();
 
         assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
     }
 
-    function testExecuteRevertsInvalidReactor() public {
-        uint256 inputAmount = 1 ether;
-        uint256 deadline = block.timestamp + 1000;
-        address otherReactor = vm.addr(0xdead);
+    function test_multicall_execute_noDecay() public {
+        tokenIn.mint(address(swapper), ONE * 100);
+        // First order.
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order1.info = order1.info.withNonce(1); // Increment nonce.
 
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        SignedOrder memory signedOrder0 =
+            SignedOrder(abi.encode(order0), signOrder(swapperPrivateKey, address(permit2), order0));
+        SignedOrder memory signedOrder1 =
+            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
 
-        Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
+        bytes[] memory actions = new bytes[](2);
+        actions[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
+        actions[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, filler);
 
-        bytes[] memory actions = new bytes[](0);
+        reactor.multicall(actions);
 
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(otherReactor), swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: deadline,
-            actions: actions,
-            inputs: inputs
-        });
+        assertEq(tokenIn.balanceOf(address(filler)), ONE * 2);
+    }
 
+    function test_multicall_execute_noDecay_multipleFeeRecipients() public {
+        tokenIn.mint(address(swapper), ONE * 100);
+        // First order.
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order1.info = order1.info.withNonce(1); // Increment nonce.
+
+        SignedOrder memory signedOrder0 =
+            SignedOrder(abi.encode(order0), signOrder(swapperPrivateKey, address(permit2), order0));
+        SignedOrder memory signedOrder1 =
+            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
+
+        bytes[] memory actions = new bytes[](2);
+        actions[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
+        actions[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, address(this));
+
+        reactor.multicall(actions);
+
+        assertEq(tokenIn.balanceOf(address(filler)), ONE);
+        assertEq(tokenIn.balanceOf(address(this)), ONE);
+    }
+
+    function test_multicall_execute_noDecay_specifiedInputRecipients() public {
+        tokenIn.mint(address(swapper), ONE * 100);
+        // First order.
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order0.inputs[0] = order0.inputs[0].withRecipient(address(this));
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order1.inputs[0] = order1.inputs[0].withRecipient(address(this));
+        order1.info = order1.info.withNonce(1); // Increment nonce.
+
+        SignedOrder memory signedOrder0 =
+            SignedOrder(abi.encode(order0), signOrder(swapperPrivateKey, address(permit2), order0));
+        SignedOrder memory signedOrder1 =
+            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
+
+        bytes[] memory actions = new bytes[](2);
+        // Even if we specify a different feeRecipient, the inputs are received in this contract.
+        actions[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
+        actions[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, filler);
+
+        reactor.multicall(actions);
+
+        assertEq(tokenIn.balanceOf(address(filler)), 0);
+        assertEq(tokenIn.balanceOf(address(this)), ONE * 2);
+    }
+
+    function test_execute_reverts_InvalidReactor() public {
+        address badReactor = address(0xbeef);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, badReactor, swapper);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
@@ -130,65 +163,27 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteRevertsSignatureExpired() public {
-        uint256 inputAmount = 1 ether;
+    function test_execute_reverts_SignatureExpired() public {
         uint256 deadline = block.timestamp + 10;
-
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-
-        Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
-
-        bytes[] memory actions = new bytes[](0);
-
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: deadline,
-            actions: actions,
-            inputs: inputs
-        });
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.info = order.info.withDeadline(deadline);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.warp(block.timestamp + 20);
+        vm.warp(deadline + 1);
         vm.prank(filler);
         vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteRevertsInvalidNonce() public {
-        uint256 inputAmount = 1 ether;
-        uint256 deadline = block.timestamp + 1000;
+    function test_execute_reverts_InvalidNonce() public {
+        tokenIn.mint(address(swapper), ONE * 100);
 
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-
-        Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
-
-        bytes[] memory actions = new bytes[](0);
-
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: deadline,
-            actions: actions,
-            inputs: inputs
-        });
-        bytes32 orderHash = order.hash();
+        RelayOrder memory order =
+            RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withEndTime(block.timestamp + 1000);
+        order.info = order.info.withDeadline(block.timestamp + 1000);
+        order.inputs[0] = order.inputs[0].withStartAmount(0); // Decay from 0 to 1.
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -197,15 +192,12 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(filler), swapper, order.info.nonce);
+        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
         // expect we can execute the first order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);
         assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
 
-        // change deadline to sig and orderHash are different
-        order.info.deadline = block.timestamp + 1500;
-        // however nonce 0 will have been used
         signedOrder = SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         // expect revert
         vm.prank(filler);
@@ -213,31 +205,10 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteRevertsEndTimeBeforeStartTime() public {
-        uint256 inputAmount = 1 ether;
-        uint256 startTime = block.timestamp + 20;
-        uint256 endTime = block.timestamp + 10;
-
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-
-        Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
-
-        bytes[] memory actions = new bytes[](0);
-
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: endTime}),
-            decayStartTime: startTime,
-            decayEndTime: endTime,
-            actions: actions,
-            inputs: inputs
-        });
+    function test_execute_reverts_EndTimeBeforeStartTime() public {
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withStartTime(
+            block.timestamp + 20
+        ).withEndTime(block.timestamp + 10);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -247,31 +218,9 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteRevertsDeadlineBeforeEndTime() public {
-        uint256 inputAmount = 1 ether;
-        uint256 endTime = block.timestamp + 20;
-        uint256 deadline = block.timestamp + 10;
-
-        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-
-        Input[] memory inputs = new Input[](1);
-        inputs[0] = Input({
-            token: address(tokenIn),
-            startAmount: 0,
-            maxAmount: inputAmount,
-            // sending to filler
-            recipient: address(0)
-        });
-
-        bytes[] memory actions = new bytes[](0);
-
-        RelayOrder memory order = RelayOrder({
-            info: OrderInfo({reactor: IRelayOrderReactor(reactor), swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: endTime,
-            actions: actions,
-            inputs: inputs
-        });
+    function test_execute_reverts_DeadlineBeforeEndTime() public {
+        RelayOrder memory order =
+            RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withEndTime(block.timestamp + 200);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
