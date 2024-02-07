@@ -83,6 +83,22 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
     }
 
+    function test_execute_noInputs() public {
+        Input[] memory inputs = new Input[](0);
+        OrderInfo memory orderInfo =
+            OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs).withEndTime(block.timestamp + 1000);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        // should be fillable
+        vm.prank(filler);
+        reactor.execute(signedOrder, filler);
+    }
+
     function test_multicall_execute_noDecay() public {
         tokenIn.mint(address(swapper), ONE * 100);
         // First order.
@@ -164,6 +180,21 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
     function test_execute_reverts_SignatureExpired() public {
         uint256 deadline = block.timestamp + 10;
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.info = order.info.withDeadline(deadline);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.warp(deadline + 1);
+        vm.prank(filler);
+        vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
+        reactor.execute(signedOrder, filler);
+    }
+
+    function test_execute_noInputs_reverts_SignatureExpired() public {
+        uint256 deadline = block.timestamp + 10;
+        Input[] memory inputs = new Input[](0);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(deadline);
 
