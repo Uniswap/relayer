@@ -37,10 +37,6 @@ library RelayOrderLib {
             revert ReactorErrors.DeadlineBeforeEndTime();
         }
 
-        if (block.timestamp > order.info.deadline) {
-            revert ReactorErrors.DeadlinePassed();
-        }
-
         if (order.decayEndTime < order.decayStartTime) {
             revert ReactorErrors.EndTimeBeforeStartTime();
         }
