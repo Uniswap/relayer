@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.2;
 
-import {RelayOrder, ResolvedInput} from "../base/ReactorStructs.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {ResolvedInput} from "../base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {RelayOrder} from "../base/ReactorStructs.sol";
 import {IMulticall} from "../interfaces/IMulticall.sol";
 
 /// @notice Quoter to be called off-chain to simulate orders to the RelayOrderReactor.
