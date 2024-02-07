@@ -43,6 +43,20 @@ contract RelayDecayLibTest is Test {
         assertEq(RelayDecayLib.decay(1 ether, 2 ether, 100, 200), 2 ether);
     }
 
+    function testRelayDecayEqualAmounts(uint256 amount, uint256 decayStartTime, uint256 decayEndTime) public {
+        vm.assume(decayEndTime >= decayStartTime);
+        uint256 time = decayStartTime;
+        bound(time, decayStartTime, decayStartTime);
+
+        vm.warp(time);
+        assertEq(RelayDecayLib.decay(amount, amount, decayStartTime, decayEndTime), amount);
+    }
+
+    function testRelayDecayInvalidAmounts() public {
+        vm.expectRevert(RelayDecayLib.InvalidAmounts.selector);
+        RelayDecayLib.decay(2 ether, 1 ether, 100, 200);
+    }
+
     function testRelayDecayBounded(uint256 startAmount, uint256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
         public
     {
