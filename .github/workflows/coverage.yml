@@ -1,0 +1,54 @@
+name: code coverage
+
+on: 
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  comment-forge-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+          version: nightly
+    - name: Run Forge build
+      run: |
+          forge --version
+          forge build --sizes
+      id: build
+    - name: Run forge coverage
+      id: coverage
+      run: |
+        {
+        echo 'COVERAGE<<EOF'
+        forge coverage | grep -v 'test/'
+        echo EOF
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Comment on PR
+      id: comment
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `${{ steps.coverage.outputs.COVERAGE }}`;
+          const index = output.indexOf('|');
+          const parsed = output.slice(index);
+          const commentBody = `Forge code coverage:\n${parsed}\n`;
+          github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
