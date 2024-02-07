@@ -221,7 +221,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_execute_reverts_DeadlineBeforeEndTime() public {
         RelayOrder memory order =
             RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withEndTime(block.timestamp + 200);
-
+        order.info = order.info.withDeadline(block.timestamp + 100);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
