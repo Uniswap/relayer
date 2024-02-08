@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.2;
+pragma solidity ^0.8.0;
 
 /// @notice Handles all calls to the universal router.
 library ActionsLib {
