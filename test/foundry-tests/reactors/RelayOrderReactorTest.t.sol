@@ -173,7 +173,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.prank(filler);
         vm.expectRevert(ReactorErrors.InvalidReactor.selector);
         reactor.execute(signedOrder, filler);
     }
@@ -187,22 +186,21 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.warp(deadline + 1);
-        vm.prank(filler);
         vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         reactor.execute(signedOrder, filler);
     }
 
-    function test_execute_noInputs_reverts_SignatureExpired() public {
+    function test_execute_reverts_NoInputsSignatureExpired() public {
         uint256 deadline = block.timestamp + 10;
         Input[] memory inputs = new Input[](0);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.inputs = inputs;
         order.info = order.info.withDeadline(deadline);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.warp(deadline + 1);
-        vm.prank(filler);
         vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         reactor.execute(signedOrder, filler);
     }
@@ -243,7 +241,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.prank(filler);
         vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
         reactor.execute(signedOrder, filler);
     }
@@ -255,7 +252,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.prank(filler);
         vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
         reactor.execute(signedOrder, filler);
     }
