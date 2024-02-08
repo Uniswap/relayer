@@ -35,6 +35,8 @@ jobs:
         forge coverage | grep -v 'test/' | tail -n +6
         echo EOF
         } >> "$GITHUB_OUTPUT"
+      env:
+        FOUNDRY_RPC_URL: '${{ secrets.RPC_URL }}'
     
     - name: Check coverage is updated
       uses: actions/github-script@v5
