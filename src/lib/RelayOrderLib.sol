@@ -45,6 +45,12 @@ library RelayOrderLib {
         }
     }
 
+    /// @notice Transfer the order's specified input tokens
+    /// @param order the relay order
+    /// @param orderHash the eip-712 order hash
+    /// @param permit2 the permit2 contract
+    /// @param feeRecipient the address to resolve transfer details with
+    /// @param sig the signature of the order
     function transferInputTokens(
         RelayOrder memory order,
         bytes32 orderHash,

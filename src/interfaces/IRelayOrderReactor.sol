@@ -6,7 +6,7 @@ import {ResolvedInput} from "../base/ReactorStructs.sol";
 import {IMulticall} from "./IMulticall.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
-/// @notice Interface for the relay order reactors
+/// @notice Interface for RelayOrderReactor
 interface IRelayOrderReactor is IMulticall {
     /// @notice Validates a user's relayed request, sends tokens to relevant addresses, and executes the relayed actions.
     /// @param signedOrder Contains the raw relay order and signature bytes.

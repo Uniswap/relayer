@@ -15,7 +15,6 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
-/// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
@@ -31,6 +30,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
+    /// @inheritdoc IRelayOrderReactor
     function execute(SignedOrder calldata signedOrder, address feeRecipient)
         external
         returns (ResolvedInput[] memory resolvedInputs)
@@ -43,6 +43,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
+    /// @inheritdoc IRelayOrderReactor
     function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
