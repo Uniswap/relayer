@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.2;
+pragma solidity ^0.8.0;
 
 import {Input, OrderInfo, RelayOrder} from "../../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";

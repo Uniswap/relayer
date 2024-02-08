@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.2;
+pragma solidity 0.8.24;
 
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ResolvedInput} from "../base/ReactorStructs.sol";
