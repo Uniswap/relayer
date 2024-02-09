@@ -13,9 +13,7 @@ interface IRelayOrderReactor is IMulticall {
     /// @param feeRecipient The address to send the user's fee input.
     /// @return Inputs The resolved amounts and details for the token transfers.
     /// @dev Batch execute is enabled by using multicall.
-    function execute(SignedOrder calldata signedOrder, address feeRecipient)
-        external
-        returns (Input[] memory Inputs);
+    function execute(SignedOrder calldata signedOrder, address feeRecipient) external returns (Input[] memory Inputs);
 
     /// @notice Execute a signed 2612-style permit.
     /// The transaction will revert if the permit cannot be executed.

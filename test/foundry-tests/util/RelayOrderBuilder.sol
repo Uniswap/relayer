@@ -11,13 +11,12 @@ import {FeeEscalatorBuilder} from "./FeeEscalatorBuilder.sol";
 library RelayOrderBuilder {
     using OrderInfoBuilder for OrderInfo;
 
-    function init(OrderInfo memory info, Input[] memory inputs, FeeEscalator memory fee) internal view returns (RelayOrder memory) {
-        return RelayOrder({
-            info: info,
-            inputs: inputs,
-            fee: fee,
-            actions: new bytes[](0)
-        });
+    function init(OrderInfo memory info, Input[] memory inputs, FeeEscalator memory fee)
+        internal
+        view
+        returns (RelayOrder memory)
+    {
+        return RelayOrder({info: info, inputs: inputs, fee: fee, actions: new bytes[](0)});
     }
 
     function withActions(RelayOrder memory order, bytes[] memory _actions) internal pure returns (RelayOrder memory) {
@@ -29,7 +28,7 @@ library RelayOrderBuilder {
         Input[] memory inputs = new Input[](1);
         // Default input does not decay.
         inputs[0] = InputBuilder.init(token);
-    
+
         return RelayOrder({
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             inputs: inputs,

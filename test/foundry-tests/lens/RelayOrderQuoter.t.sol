@@ -8,15 +8,18 @@ import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {RelayOrderQuoter} from "../../../src/lens/RelayOrderQuoter.sol";
-import {Input, OrderInfo, RelayOrder, Input} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo, RelayOrder, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {IMulticall} from "../../../src/interfaces/IMulticall.sol";
+import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 
 contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
+    using FeeEscalatorBuilder for FeeEscalator;
+
     RelayOrderQuoter quoter;
     IRelayOrderReactor reactor;
 
@@ -54,8 +57,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
                 nonce: 0,
                 deadline: block.timestamp + 100
             }),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -69,12 +71,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         // Actions len = 0 to avoid the revert in UR.
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp + 100}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -114,12 +115,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         // Actions len = 0 to avoid the revert in UR.
         bytes[] memory actions = new bytes[](0);
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp + 100}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 100,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -190,12 +190,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: decayEndTime,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -211,12 +210,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: deadline}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -235,12 +233,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: startTime,
-            decayEndTime: endTime,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -279,14 +276,13 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         // Actions len = 0 to avoid the revert in UR.
         bytes[] memory actions = new bytes[](0);
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         uint256 startTime = block.timestamp + 1;
         uint256 endTime = block.timestamp;
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: startTime,
-            decayEndTime: endTime,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -310,12 +306,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -332,12 +327,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         bytes[] memory actions = new bytes[](1);
         actions[0] = abi.encode(bytes4(keccak256("FakeSelector()"))); // Will just execute the fallback call and revert.
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -353,15 +347,14 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         vm.prank(swapper);
         permit2.invalidateUnorderedNonces(0, 1); // Invalidates the first nonce.
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });
@@ -377,12 +370,11 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         Input[] memory inputs = new Input[](1);
         bytes[] memory actions = new bytes[](0);
 
-        inputs[0] = Input({token: address(tokenIn), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        inputs[0] = Input({token: address(tokenIn), recipient: address(0), amount: ONE});
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfo({reactor: reactor, swapper: swapper, nonce: 0, deadline: block.timestamp}),
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(tokenIn),
             actions: actions,
             inputs: inputs
         });

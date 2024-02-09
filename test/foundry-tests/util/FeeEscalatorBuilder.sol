@@ -6,24 +6,22 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ONE} from "./Constants.sol";
 
 library FeeEscalatorBuilder {
-    function init(ERC20 token) internal pure returns (FeeEscalator memory) {
+    function init(ERC20 token) internal view returns (FeeEscalator memory) {
         // The default fee does not decay, so the start and end amounts are the same.
         return FeeEscalator({
-            token: address(token), 
-            recipient: address(0), 
-            startAmount: ONE, 
+            token: address(token),
+            startAmount: ONE,
             maxAmount: ONE,
             startTime: block.timestamp,
             endTime: block.timestamp
         });
     }
 
-    function withRecipient(FeeEscalator memory fee, address _recipient) internal pure returns (FeeEscalator memory) {
-        fee.recipient = _recipient;
-        return fee;
-    }
-
-    function withStartAmount(FeeEscalator memory fee, uint256 _startAmount) internal pure returns (FeeEscalator memory) {
+    function withStartAmount(FeeEscalator memory fee, uint256 _startAmount)
+        internal
+        pure
+        returns (FeeEscalator memory)
+    {
         fee.startAmount = _startAmount;
         return fee;
     }

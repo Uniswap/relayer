@@ -31,10 +31,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
-    function execute(SignedOrder calldata signedOrder, address feeRecipient)
-        external
-        returns (Input[] memory inputs)
-    {
+    function execute(SignedOrder calldata signedOrder, address feeRecipient) external returns (Input[] memory inputs) {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
         bytes32 orderHash = order.hash();

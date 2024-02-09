@@ -17,15 +17,13 @@ library FeeEscalatorLib {
         permissions[0] = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.maxAmount});
     }
     /// @notice Handles transforming the input data into the the decayed amounts and respective recipients.
+
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
         internal
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory details)
     {
         uint256 decayedAmount = RelayDecayLib.decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
-        details = ISignatureTransfer.SignatureTransferDetails({
-                to: feeRecipient,
-                requestedAmount: decayedAmount
-        });
+        details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: decayedAmount});
     }
-} 
+}

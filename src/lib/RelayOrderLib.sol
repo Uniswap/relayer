@@ -54,17 +54,16 @@ library RelayOrderLib {
         permissions = new ISignatureTransfer.TokenPermissions[](numPermissions);
 
         for (uint256 i = 0; i < order.inputs.length; i++) {
-            permissions[i] = ISignatureTransfer.TokenPermissions({token: order.inputs[i].token, amount: order.inputs[i].amount});
+            permissions[i] =
+                ISignatureTransfer.TokenPermissions({token: order.inputs[i].token, amount: order.inputs[i].amount});
         }
-        permissions[numPermissions - 1] = ISignatureTransfer.TokenPermissions({
-            token: order.fee.token,
-            amount: order.fee.maxAmount
-        });
+        permissions[numPermissions - 1] =
+            ISignatureTransfer.TokenPermissions({token: order.fee.token, amount: order.fee.maxAmount});
     }
 
     function toTransferDetails(RelayOrder memory order, address feeRecipient)
         internal
-        pure
+        view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
     {
         // add one for fee escalator
