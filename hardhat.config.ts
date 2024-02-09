@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const DEFAULT_COMPILER_SETTINGS = {
-  version: '0.8.19',
+  version: '0.8.24',
   settings: {
     viaIR: true,
     evmVersion: 'istanbul',
@@ -28,12 +28,12 @@ export default {
       allowUnlimitedContractSize: false,
       chainId: 1,
       forking: {
-        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        url: `${process.env.FOUNDRY_RPC_URL}`,
         blockNumber: 15360000,
       },
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `${process.env.FOUNDRY_RPC_URL}`,
     },
   },
   namedAccounts: {
