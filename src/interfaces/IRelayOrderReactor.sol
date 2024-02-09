@@ -19,6 +19,9 @@ interface IRelayOrderReactor is IMulticall {
     /// @dev A permit request can be combined with an execute action through multicall.
     function permit(ERC20 token, bytes calldata data) external;
 
+    /// @notice Resolves the parameters of an order and returns the input amounts for the current time
+    /// @param signedOrder Contains the raw relay order and signature bytes.
+    /// @param feeRecipient The address to send the user's fee input.
     function resolve(SignedOrder calldata signedOrder, address feeRecipient)
         external
         view
