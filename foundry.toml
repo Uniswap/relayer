@@ -6,6 +6,7 @@ no_match_path = "*/integration/*"
 ffi = true
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}, { access = "read-write", path = "out/" }, { access = "read", path = "./test/foundry-tests/interop.json"}]
 optimizer_runs = 1000000
+solc_version = "0.8.24"
 
 [profile.integration]
 no_match_path = ""

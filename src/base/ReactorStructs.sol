@@ -9,12 +9,10 @@ import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 struct RelayOrder {
     // Generic order info
     OrderInfo info;
-    // Token info for the onchain trade and the payout to fillers
+    // Token info for any onchain actions
     Input[] inputs;
-    // The time at which the inputs start decaying
-    uint256 decayStartTime;
-    // The time at which price becomes static
-    uint256 decayEndTime;
+    // The fee offered for the order
+    FeeEscalator fee;
     // ecnoded actions to execute onchain
     bytes[] actions;
 }
@@ -34,19 +32,22 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-/// @notice Every RelayOrder input is defined by a token, recipient,
-/// and amounts that define the start and end amounts on the decay curve.
-/// @dev These values are signed by the user. address(0) will set the recipient at run-time to the passed in feeRecipient value.
+/// @notice Every RelayOrder input is defined by a token, amount, and recipient,
+/// @dev These values are signed by the user
 struct Input {
     address token;
+    uint256 amount;
     address recipient;
-    uint256 startAmount;
-    uint256 maxAmount;
 }
 
-/// @notice Contains the final resolved transfer information. Amounts are decayed and feeRecipient is returned.
-struct ResolvedInput {
+/// @notice A RelayOrder can specify an increasing fee over time to be paid
+/// @dev The resolved amount will be sent to the passed in feeRecipient address
+struct FeeEscalator {
     address token;
-    address recipient;
-    uint256 amount;
+    uint256 startAmount;
+    uint256 maxAmount;
+    // The time at which the fee starts to increase
+    uint256 startTime;
+    // The time at which the fee becomes static
+    uint256 endTime;
 }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {ResolvedInput} from "../base/ReactorStructs.sol";
+import {Input} from "../base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {IMulticall} from "../interfaces/IMulticall.sol";
 
@@ -13,7 +13,7 @@ contract RelayOrderQuoter {
     uint256 constant ORDER_INFO_OFFSET = 32;
 
     // Execute and multicall return values with 1 element will be encoded as follows. They each have different minimum valid lengths.
-    // ResolvedInput[]                                 |     bytes[]
+    // Input[]                                 |     bytes[]
     // 32 bytes, location of first param               |  32 bytes, location of the first param
     // 32 bytes, length                                |  32 bytes, length of the bytes array
     // 32 bytes, address                               |  32 bytes, location of the first element
@@ -24,7 +24,7 @@ contract RelayOrderQuoter {
 
     function quote(bytes calldata order, bytes calldata sig, address feeRecipient)
         external
-        returns (ResolvedInput[] memory result)
+        returns (Input[] memory result)
     {
         bytes memory executeSelector =
             abi.encodeWithSelector(IRelayOrderReactor.execute.selector, SignedOrder(order, sig), feeRecipient);
@@ -64,14 +64,14 @@ contract RelayOrderQuoter {
     /// @param order abi-encoded order, including `reactor` as the first encoded struct member
     function parseRevertReason(
         bytes memory reason // ISignatureTransfer[]
-    ) private pure returns (ResolvedInput[] memory order) {
+    ) private pure returns (Input[] memory order) {
         // Note that the decoding will error if there are invalid results that error with data > min valid reason (128).
         if (reason.length < MIN_VALID_REASON_LENGTH_EXECUTE) {
             assembly {
                 revert(add(32, reason), mload(reason))
             }
         } else {
-            return abi.decode(reason, (ResolvedInput[]));
+            return abi.decode(reason, (Input[]));
         }
     }
 

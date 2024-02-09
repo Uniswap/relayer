@@ -4,14 +4,13 @@ pragma solidity ^0.8.0;
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, Input, ResolvedInput} from "../base/ReactorStructs.sol";
+import {RelayOrder, Input, FeeEscalator} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
-import {InputsLib} from "./InputsLib.sol";
+import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
 
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
-    using InputsLib for Input[];
-    using InputsLib for ResolvedInput[];
+    using FeeEscalatorLib for FeeEscalator;
 
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
@@ -24,19 +23,19 @@ library RelayOrderLib {
         "address swapper,",
         "uint256[] startAmounts,",
         "address[] recipients,",
-        "uint256 decayStartTime,",
-        "uint256 decayEndTime,",
+        "uint256 startTime,",
+        "uint256 endTime,",
         "bytes[] actions)"
     );
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
 
     function validate(RelayOrder memory order) internal view {
-        if (order.info.deadline < order.decayEndTime) {
+        if (order.info.deadline < order.fee.endTime) {
             revert ReactorErrors.DeadlineBeforeEndTime();
         }
 
-        if (order.decayEndTime < order.decayStartTime) {
+        if (order.fee.endTime < order.fee.startTime) {
             revert ReactorErrors.EndTimeBeforeStartTime();
         }
 
@@ -45,17 +44,51 @@ library RelayOrderLib {
         }
     }
 
+    function toPermit(RelayOrder memory order)
+        internal
+        pure
+        returns (ISignatureTransfer.TokenPermissions[] memory permissions)
+    {
+        // add one for fee escalator
+        uint256 numPermissions = order.inputs.length + 1;
+        permissions = new ISignatureTransfer.TokenPermissions[](numPermissions);
+
+        for (uint256 i = 0; i < order.inputs.length; i++) {
+            permissions[i] = ISignatureTransfer.TokenPermissions({token: order.inputs[i].token, amount: order.inputs[i].amount});
+        }
+        permissions[numPermissions - 1] = ISignatureTransfer.TokenPermissions({
+            token: order.fee.token,
+            amount: order.fee.maxAmount
+        });
+    }
+
+    function toTransferDetails(RelayOrder memory order, address feeRecipient)
+        internal
+        pure
+        returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
+    {
+        // add one for fee escalator
+        uint256 numPermissions = order.inputs.length + 1;
+        details = new ISignatureTransfer.SignatureTransferDetails[](numPermissions);
+
+        for (uint256 i = 0; i < order.inputs.length; i++) {
+            details[i] = ISignatureTransfer.SignatureTransferDetails({
+                to: order.inputs[i].recipient,
+                requestedAmount: order.inputs[i].amount
+            });
+        }
+        details[numPermissions - 1] = order.fee.toTransferDetails(feeRecipient);
+    }
+
     function transferInputTokens(
         RelayOrder memory order,
         bytes32 orderHash,
         IPermit2 permit2,
         address feeRecipient,
         bytes calldata sig
-    ) internal returns (ResolvedInput[] memory resolvedInputs) {
-        ISignatureTransfer.TokenPermissions[] memory permissions = order.inputs.toPermit();
-
-        resolvedInputs = order.inputs.toResolvedInputs(order.decayStartTime, order.decayEndTime, feeRecipient);
-        ISignatureTransfer.SignatureTransferDetails[] memory details = resolvedInputs.toTransferDetails();
+    ) internal returns (Input[] memory Inputs) {
+        ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
+        ISignatureTransfer.SignatureTransferDetails[] memory details = order.toTransferDetails(feeRecipient);
 
         permit2.permitWitnessTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({
@@ -83,7 +116,7 @@ library RelayOrderLib {
 
         for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
-            startAmounts[i] = input.startAmount;
+            startAmounts[i] = input.amount;
             recipients[i] = input.recipient;
         }
 
@@ -101,8 +134,8 @@ library RelayOrderLib {
                 order.info.swapper,
                 keccak256(abi.encodePacked(startAmounts)),
                 keccak256(abi.encodePacked(recipients)),
-                order.decayStartTime,
-                order.decayEndTime,
+                order.fee.startTime,
+                order.fee.endTime,
                 keccak256(abi.encodePacked(hashedActions))
             )
         );

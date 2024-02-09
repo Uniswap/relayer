@@ -1,33 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Input, OrderInfo, RelayOrder} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo, RelayOrder, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {InputBuilder} from "./InputBuilder.sol";
 import {OrderInfoBuilder} from "./OrderInfoBuilder.sol";
+import {FeeEscalatorBuilder} from "./FeeEscalatorBuilder.sol";
 
 library RelayOrderBuilder {
     using OrderInfoBuilder for OrderInfo;
 
-    function init(OrderInfo memory info, Input[] memory inputs) internal view returns (RelayOrder memory) {
+    function init(OrderInfo memory info, Input[] memory inputs, FeeEscalator memory fee) internal view returns (RelayOrder memory) {
         return RelayOrder({
             info: info,
             inputs: inputs,
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: fee,
             actions: new bytes[](0)
         });
-    }
-
-    function withStartTime(RelayOrder memory order, uint256 _startTime) internal pure returns (RelayOrder memory) {
-        order.decayStartTime = _startTime;
-        return order;
-    }
-
-    function withEndTime(RelayOrder memory order, uint256 _endTime) internal pure returns (RelayOrder memory) {
-        order.decayEndTime = _endTime;
-        return order;
     }
 
     function withActions(RelayOrder memory order, bytes[] memory _actions) internal pure returns (RelayOrder memory) {
@@ -39,11 +29,11 @@ library RelayOrderBuilder {
         Input[] memory inputs = new Input[](1);
         // Default input does not decay.
         inputs[0] = InputBuilder.init(token);
+    
         return RelayOrder({
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             inputs: inputs,
-            decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp,
+            fee: FeeEscalatorBuilder.init(token),
             actions: new bytes[](0)
         });
     }

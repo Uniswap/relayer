@@ -8,7 +8,7 @@ import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {RelayOrderQuoter} from "../../../src/lens/RelayOrderQuoter.sol";
-import {Input, OrderInfo, RelayOrder, ResolvedInput} from "../../../src/base/ReactorStructs.sol";
+import {Input, OrderInfo, RelayOrder, Input} from "../../../src/base/ReactorStructs.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {IMulticall} from "../../../src/interfaces/IMulticall.sol";
@@ -79,7 +79,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
             inputs: inputs
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-        ResolvedInput[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
+        Input[] memory quote = quoter.quote(abi.encode(order), sig, address(this));
         assertEq(address(quote[0].recipient), address(this));
         assertEq(quote[0].amount, ONE);
         assertEq(quote[0].token, address(tokenIn));
@@ -135,7 +135,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
 
         bytes[] memory quote = quoter.quoteMulticall(address(reactor), multicallData);
         bytes memory permitResult = quote[0];
-        (ResolvedInput[] memory transferResult) = abi.decode(quote[1], (ResolvedInput[]));
+        (Input[] memory transferResult) = abi.decode(quote[1], (Input[]));
 
         assertEq(permitResult.length, 0); // permit returns nothing
 

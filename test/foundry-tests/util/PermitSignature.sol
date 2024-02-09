@@ -7,12 +7,10 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
-import {InputsLib} from "../../../src/lib/InputsLib.sol";
 import {Input, RelayOrder} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using RelayOrderLib for RelayOrder;
-    using InputsLib for Input[];
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -30,7 +28,7 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        ISignatureTransfer.TokenPermissions[] memory permissions = order.inputs.toPermit();
+        ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
 
         ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
             permitted: permissions,
