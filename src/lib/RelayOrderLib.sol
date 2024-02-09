@@ -13,7 +13,7 @@ library RelayOrderLib {
     using FeeEscalatorLib for FeeEscalator;
 
     string internal constant PERMIT2_ORDER_TYPE = string(
-        abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
+        abi.encodePacked("RelayOrder witness)", FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING, RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
     );
 
     /// @dev Max amounts and token addresses are signed in the token permissions of the permit information.
@@ -23,9 +23,7 @@ library RelayOrderLib {
         "address swapper,",
         "uint256[] startAmounts,",
         "address[] recipients,",
-        // TODO: need nested FeeEscalator struct here
-        "uint256 startTime,",
-        "uint256 endTime,",
+        "FeeEscalator fee,",
         "bytes[] actions)"
     );
 
@@ -134,8 +132,7 @@ library RelayOrderLib {
                 order.info.swapper,
                 keccak256(abi.encodePacked(startAmounts)),
                 keccak256(abi.encodePacked(recipients)),
-                order.fee.startTime,
-                order.fee.endTime,
+                order.fee.hash(),
                 keccak256(abi.encodePacked(hashedActions))
             )
         );

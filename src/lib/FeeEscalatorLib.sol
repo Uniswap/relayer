@@ -7,6 +7,9 @@ import {RelayDecayLib} from "./RelayDecayLib.sol";
 import {FeeEscalator, Input} from "../base/ReactorStructs.sol";
 
 library FeeEscalatorLib {
+    string public constant FEE_ESCALATOR_TYPESTRING = "FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)";
+    bytes32 internal constant FEE_ESCALATOR_TYPEHASH = keccak256("FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)");
+
     /// @notice Transforms the input data into the TokenPermissions struct needed for the permit call.
     function toPermit(FeeEscalator memory fee)
         internal
@@ -25,5 +28,20 @@ library FeeEscalatorLib {
     {
         uint256 decayedAmount = RelayDecayLib.decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
         details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: decayedAmount});
+    }
+
+    /// @notice hash the fee
+    /// @return the eip-712 order hash
+    function hash(FeeEscalator memory fee) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                FEE_ESCALATOR_TYPEHASH,
+                fee.token,
+                fee.startAmount,
+                fee.maxAmount,
+                fee.startTime,
+                fee.endTime
+            )
+        );
     }
 }
