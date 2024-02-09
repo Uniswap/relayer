@@ -8,7 +8,7 @@ import {IMulticall} from "../interfaces/IMulticall.sol";
 abstract contract Multicall is IMulticall {
     function multicall(bytes[] calldata data) public virtual returns (bytes[] memory results) {
         results = new bytes[](data.length);
-        for (uint256 i = 0; i < data.length;) {
+        for (uint256 i = 0; i < data.length; i++) {
             (bool success, bytes memory result) = address(this).delegatecall(data[i]);
             if (!success) {
                 // bubble up all errors, including custom errors which are encoded like functions
@@ -17,9 +17,6 @@ abstract contract Multicall is IMulticall {
                 }
             }
             results[i] = result;
-            unchecked {
-                i++;
-            }
         }
     }
 }

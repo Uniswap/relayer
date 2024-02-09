@@ -51,11 +51,10 @@ library RelayOrderLib {
         IPermit2 permit2,
         address feeRecipient,
         bytes calldata sig
-    ) internal returns (ResolvedInput[] memory resolvedInputs) {
+    ) internal returns (ISignatureTransfer.SignatureTransferDetails[] memory details) {
         ISignatureTransfer.TokenPermissions[] memory permissions = order.inputs.toPermit();
 
-        resolvedInputs = order.inputs.toResolvedInputs(order.decayStartTime, order.decayEndTime, feeRecipient);
-        ISignatureTransfer.SignatureTransferDetails[] memory details = resolvedInputs.toTransferDetails();
+        details = order.inputs.toTransferDetails(order.decayStartTime, order.decayEndTime, feeRecipient);
 
         permit2.permitWitnessTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({
@@ -73,7 +72,8 @@ library RelayOrderLib {
 
     /// @notice hash the given order
     /// @param order the order to hash
-    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
+    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts).
+    /// The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         uint256 inputsLength = order.inputs.length;
