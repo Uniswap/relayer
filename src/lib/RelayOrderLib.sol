@@ -23,6 +23,7 @@ library RelayOrderLib {
         "address swapper,",
         "uint256[] startAmounts,",
         "address[] recipients,",
+        // TODO: need nested FeeEscalator struct here
         "uint256 startTime,",
         "uint256 endTime,",
         "bytes[] actions)"
@@ -85,7 +86,7 @@ library RelayOrderLib {
         IPermit2 permit2,
         address feeRecipient,
         bytes calldata sig
-    ) internal returns (Input[] memory details) {
+    ) internal {
         ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
         ISignatureTransfer.SignatureTransferDetails[] memory details = order.toTransferDetails(feeRecipient);
 
