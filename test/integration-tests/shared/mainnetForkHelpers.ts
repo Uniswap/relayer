@@ -14,7 +14,7 @@ export const resetFork = async (block: number = DEFAULT_FORK_BLOCK) => {
     params: [
       {
         forking: {
-          jsonRpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+          jsonRpcUrl: `${process.env.FOUNDRY_RPC_URL}`,
           blockNumber: block,
         },
       },
