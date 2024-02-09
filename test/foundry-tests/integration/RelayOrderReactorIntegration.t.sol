@@ -243,7 +243,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input[] memory inputs = new Input[](1);
         inputs[0] = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
 
-        FeeEscalator memory fee = FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * ONE).withMaxAmount(10 * ONE);
+        FeeEscalator memory fee =
+            FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withMaxAmount(10 * USDC_ONE);
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -339,53 +340,27 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = DAI;
         ERC20 gasToken = USDC;
 
-        // sign permit for USDC
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                USDC.DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
-                        swapper2,
-                        address(PERMIT2),
-                        type(uint256).max - 1, // infinite approval
-                        USDC.nonces(swapper2),
-                        type(uint256).max - 1 // infinite deadline
-                    )
-                )
-            )
-        );
+        bytes memory permitData = generatePermitData(USDC, swapper2PrivateKey);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapper2PrivateKey, digest);
-        assertEq(ecrecover(digest, v, r, s), swapper2);
+        // this swapper has not yet approved the P2 contract
+        // so we will relay a USDC 2612 permit to the P2 contract first
+        // making a USDC -> DAI swap
+        Input[] memory inputs = new Input[](1);
+        inputs[0] = InputBuilder.init(tokenIn).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
 
-        RelayOrder memory order;
-        bytes memory permitData =
-                abi.encode(swapper2, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
-        {
-            // this swapper has not yet approved the P2 contract
-            // so we will relay a USDC 2612 permit to the P2 contract first
-            // making a USDC -> DAI swap
-            Input[] memory inputs = new Input[](1);
-            inputs[0] = InputBuilder.init(tokenIn).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER); 
-             
-            FeeEscalator memory fee = FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withMaxAmount(10 * USDC_ONE);
+        FeeEscalator memory fee =
+            FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withMaxAmount(10 * USDC_ONE);
 
-            bytes[] memory actions = new bytes[](1);
-            MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
-            actions[0] = methodParameters.data;
+        bytes[] memory actions = new bytes[](1);
+        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
+        actions[0] = methodParameters.data;
 
-            OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
-                block.timestamp + 100
-            ).withNonce(0);
-            order = RelayOrderBuilder.init(orderInfo, inputs, fee).withActions(actions);
+        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(
+            block.timestamp + 100
+        ).withNonce(0);
 
-            // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
-            // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
-            _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
-        }
-        
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs, fee).withActions(actions);
+
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
 
@@ -393,6 +368,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
         data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder, filler);
+
+        // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
+        // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
+        _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
 
         _checkpointBalances(swapper2, filler, tokenIn, tokenOut, USDC);
 
@@ -410,10 +389,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             swapperInputBalanceStart - 100 * USDC_ONE - 10 * USDC_ONE,
             "Swapper input tokens"
         );
-        uint256 amountOutMin = 95 * ONE;
         assertGe(
             tokenOut.balanceOf(swapper2),
-            swapperOutputBalanceStart + amountOutMin,
+            swapperOutputBalanceStart + 95 * ONE, // amountOutMin
             "Swapper did not receive enough output"
         );
         assertEq(tokenIn.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
@@ -541,6 +519,33 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             "Swapper did not receive enough output"
         );
         assertEq(tokenOut.balanceOf((feeRecipient)), 10 * USDC_ONE, "fee recipient balance");
+    }
+
+    function generatePermitData(ERC20 token, uint256 signerPrivateKey) internal returns (bytes memory permitData) {
+        address signer = vm.addr(signerPrivateKey);
+        // sign permit for USDC
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                token.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        signer,
+                        address(PERMIT2),
+                        type(uint256).max - 1, // infinite approval
+                        token.nonces(signer),
+                        type(uint256).max - 1 // infinite deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
+        assertEq(ecrecover(digest, v, r, s), signer);
+
+        permitData =
+            abi.encode(signer, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

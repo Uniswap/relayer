@@ -43,7 +43,7 @@ contract RelayOrderQuoterTest is Test, PermitSignature, DeployPermit2 {
 
         swapperPrivateKey = 0x1234;
         swapper = vm.addr(swapperPrivateKey);
-        tokenIn.mint(address(swapper), ONE);
+        tokenIn.mint(address(swapper), 100 * ONE);
     }
 
     function testGetReactor() public {

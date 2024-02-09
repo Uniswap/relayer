@@ -212,8 +212,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_execute_reverts_InvalidNonce() public {
         tokenIn.mint(address(swapper), ONE * 100);
 
-        RelayOrder memory order =
-            RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(block.timestamp + 1000);
         order.inputs[0] = order.inputs[0].withAmount(0); // Decay from 0 to 1.
 
@@ -248,8 +247,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     }
 
     function test_execute_reverts_DeadlineBeforeEndTime() public {
-        RelayOrder memory order =
-            RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(block.timestamp + 100);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));

@@ -85,7 +85,7 @@ library RelayOrderLib {
         IPermit2 permit2,
         address feeRecipient,
         bytes calldata sig
-    ) internal returns (Input[] memory Inputs) {
+    ) internal returns (Input[] memory details) {
         ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
         ISignatureTransfer.SignatureTransferDetails[] memory details = order.toTransferDetails(feeRecipient);
 
