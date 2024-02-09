@@ -70,6 +70,14 @@ library RelayOrderLib {
         );
     }
 
+    function resolve(RelayOrder memory order, address feeRecipient)
+        internal
+        view
+        returns (ResolvedInput[] memory resolvedInputs)
+    {
+        resolvedInputs = order.inputs.toResolvedInputs(order.decayStartTime, order.decayEndTime, feeRecipient);
+    }
+
     /// @notice hash the given order
     /// @param order the order to hash
     /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts).

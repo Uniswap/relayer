@@ -18,4 +18,9 @@ interface IRelayOrderReactor is IMulticall {
     /// The transaction will revert if the permit cannot be executed.
     /// @dev A permit request can be combined with an execute action through multicall.
     function permit(ERC20 token, bytes calldata data) external;
+
+    function resolve(SignedOrder calldata signedOrder, address feeRecipient)
+        external
+        view
+        returns (ResolvedInput[] memory resolvedInputs);
 }

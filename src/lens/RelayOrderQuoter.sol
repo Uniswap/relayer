@@ -26,12 +26,17 @@ contract RelayOrderQuoter {
         external
         returns (ResolvedInput[] memory result)
     {
-        bytes memory executeSelector =
+        bytes memory executeCalldata =
             abi.encodeWithSelector(IRelayOrderReactor.execute.selector, SignedOrder(order, sig), feeRecipient);
-        (bool success, bytes memory reason) = _callSelf(address(getReactor(order)), executeSelector);
-        if (!success) {
-            result = parseRevertReason(reason);
-        }
+        bytes memory resolveCalldata =
+            abi.encodeWithSelector(IRelayOrderReactor.resolve.selector, SignedOrder(order, sig), feeRecipient);
+
+        (bool success, bytes memory reason) = address(getReactor(order)).call(executeCalldata);
+        if (!success) parseRevertReason(reason);
+
+        (success, reason) = address(getReactor(order)).staticcall(resolveCalldata);
+        if (!success) parseRevertReason(reason);
+        return abi.decode(reason, (ResolvedInput[]));
     }
 
     function quoteMulticall(address reactor, bytes[] calldata multicallData)
@@ -61,23 +66,15 @@ contract RelayOrderQuoter {
         }
     }
 
-    /// @param order abi-encoded order, including `reactor` as the first encoded struct member
-    function parseRevertReason(
-        bytes memory reason // ISignatureTransfer[]
-    ) private pure returns (ResolvedInput[] memory order) {
-        // Note that the decoding will error if there are invalid results that error with data > min valid reason (128).
-        if (reason.length < MIN_VALID_REASON_LENGTH_EXECUTE) {
-            assembly {
-                revert(add(32, reason), mload(reason))
-            }
-        } else {
-            return abi.decode(reason, (ResolvedInput[]));
+    function parseRevertReason(bytes memory reason) private pure {
+        assembly {
+            revert(add(32, reason), mload(reason))
         }
     }
 
     function parseMulticallRevertReason(bytes memory reason) private pure returns (bytes[] memory) {
         // Note that the decoding will error if there are invalid results that error with data > min valid reason (128).
-        if (reason.length < MIN_VALID_REASON_LENGTH_MULTICALL) {
+        if (reason.length != 0) {
             assembly {
                 revert(add(32, reason), mload(reason))
             }

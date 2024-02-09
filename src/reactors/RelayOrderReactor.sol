@@ -40,6 +40,15 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
+    function resolve(SignedOrder calldata signedOrder, address feeRecipient)
+        external
+        view
+        returns (ResolvedInput[] memory resolvedInputs)
+    {
+        (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
+        resolvedInputs = order.resolve(feeRecipient);
+    }
+
     function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
