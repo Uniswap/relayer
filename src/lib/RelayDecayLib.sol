@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
-/// @notice helpers for handling dutch order objects
+/// @notice helpers for handling relay order objects
 library RelayDecayLib {
     using FixedPointMathLib for uint256;
 
     /// @notice thrown if the decay direction is incorrect
-    /// - for InputTokens, startAmount must be less than or equal toendAmount
+    /// - for InputTokens, startAmount must be less than or equal to endAmount
     error InvalidAmounts();
 
     /// @notice calculates an amount using linear decay over time from decayStartTime to decayEndTime
@@ -32,11 +32,7 @@ library RelayDecayLib {
             unchecked {
                 uint256 elapsed = block.timestamp - decayStartTime;
                 uint256 duration = decayEndTime - decayStartTime;
-                if (endAmount < startAmount) {
-                    decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-                } else {
-                    decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
-                }
+                decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
             }
         }
     }
