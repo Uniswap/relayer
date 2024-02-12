@@ -67,7 +67,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         Input memory input = InputBuilder.init(tokenIn).withAmount(ONE);
 
         FeeEscalator memory fee =
-            FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withendAmount(ONE).withEndTime(block.timestamp + 1000);
+            FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withEndAmount(ONE).withEndTime(block.timestamp + 1000);
         OrderInfo memory orderInfo =
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee);
@@ -218,7 +218,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(block.timestamp + 1000);
-        order.fee = order.fee.withStartAmount(0).withendAmount(ONE).withEndTime(block.timestamp + 1000); // increase from 0 to 1.
+        order.fee = order.fee.withStartAmount(0).withEndAmount(ONE).withEndTime(block.timestamp + 1000); // increase from 0 to 1.
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));

@@ -26,7 +26,7 @@ library FeeEscalatorBuilder {
         return fee;
     }
 
-    function withendAmount(FeeEscalator memory fee, uint256 _endAmount) internal pure returns (FeeEscalator memory) {
+    function withEndAmount(FeeEscalator memory fee, uint256 _endAmount) internal pure returns (FeeEscalator memory) {
         fee.endAmount = _endAmount;
         return fee;
     }
