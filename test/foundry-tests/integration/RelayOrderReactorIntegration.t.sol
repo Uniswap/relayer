@@ -252,13 +252,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
         actions[0] = methodParameters.data;
 
-        OrderInfo memory info = OrderInfo({
-            reactor: IRelayOrderReactor(address(reactor)),
-            swapper: swapper,
-            nonce: 1,
-            deadline: block.timestamp + 100
-        });
-
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
             block.timestamp + 100
         ).withNonce(1);

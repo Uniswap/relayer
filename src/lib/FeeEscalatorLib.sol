@@ -12,7 +12,7 @@ library FeeEscalatorLib {
     bytes32 internal constant FEE_ESCALATOR_TYPEHASH =
         keccak256("FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)");
 
-    /// @notice Transforms the input data into the TokenPermissions struct needed for the permit call.
+    /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
     function toPermit(FeeEscalator memory fee)
         internal
         pure
@@ -20,8 +20,8 @@ library FeeEscalatorLib {
     {
         permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.maxAmount});
     }
-    /// @notice Handles transforming the input data into the the decayed amounts and respective recipients.
 
+    /// @notice Handles transforming the fee data into the the resolved amounts and respective recipients.
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
         internal
         view

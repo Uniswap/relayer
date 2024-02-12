@@ -13,7 +13,7 @@ library RelayOrderBuilder {
 
     function init(OrderInfo memory info, Input[] memory inputs, FeeEscalator memory fee)
         internal
-        view
+        pure
         returns (RelayOrder memory)
     {
         return RelayOrder({info: info, inputs: inputs, fee: fee, actions: new bytes[](0)});

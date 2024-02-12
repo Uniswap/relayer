@@ -26,7 +26,7 @@ library RelayOrderLib {
         "RelayOrder(",
         "address reactor,",
         "address swapper,",
-        "uint256[] startAmounts,",
+        "uint256[] amounts,",
         "address[] recipients,",
         "FeeEscalator fee,",
         "bytes[] actions)"
@@ -108,17 +108,17 @@ library RelayOrderLib {
 
     /// @notice hash the given order
     /// @param order the order to hash
-    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and startAmounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
+    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and amounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         uint256 inputsLength = order.inputs.length;
-        // Build an array for the startAmounts and recipients.
-        uint256[] memory startAmounts = new uint256[](inputsLength);
+        // Build an array for the input amounts and recipients.
+        uint256[] memory amounts = new uint256[](inputsLength);
         address[] memory recipients = new address[](inputsLength);
 
         for (uint256 i = 0; i < inputsLength; i++) {
             Input memory input = order.inputs[i];
-            startAmounts[i] = input.amount;
+            amounts[i] = input.amount;
             recipients[i] = input.recipient;
         }
 
@@ -134,7 +134,7 @@ library RelayOrderLib {
                 RELAY_ORDER_TYPEHASH,
                 order.info.reactor,
                 order.info.swapper,
-                keccak256(abi.encodePacked(startAmounts)),
+                keccak256(abi.encodePacked(amounts)),
                 keccak256(abi.encodePacked(recipients)),
                 order.fee.hash(),
                 keccak256(abi.encodePacked(hashedActions))
