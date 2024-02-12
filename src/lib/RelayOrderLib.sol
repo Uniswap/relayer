@@ -33,6 +33,7 @@ library RelayOrderLib {
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
 
+    /// @notice validate a relay order
     function validate(RelayOrder memory order) internal view {
         if (order.info.deadline < order.fee.endTime) {
             revert ReactorErrors.DeadlineBeforeEndTime();

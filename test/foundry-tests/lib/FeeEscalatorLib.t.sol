@@ -67,8 +67,8 @@ contract FeeEscalatorLibTest is Test {
     {
         vm.assume(endAmount > startAmount);
         vm.assume(endTime >= startTime);
-        uint256 decayed = FeeEscalatorLib.resolve(startAmount, endAmount, startTime, endTime);
-        assertGe(decayed, startAmount);
-        assertLe(decayed, endAmount);
+        uint256 resolved = FeeEscalatorLib.resolve(startAmount, endAmount, startTime, endTime);
+        assertGe(resolved, startAmount);
+        assertLe(resolved, endAmount);
     }
 }
