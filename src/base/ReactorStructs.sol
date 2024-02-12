@@ -10,11 +10,11 @@ struct RelayOrder {
     // Generic order info
     OrderInfo info;
     // Token info for onchain actions
-    Input[] inputs;
+    Input input;
     // The fee offered for the order
     FeeEscalator fee;
-    // ecnoded actions to execute onchain
-    bytes[] actions;
+    // ecnoded data to execute onchain
+    bytes data;
 }
 
 /// @dev generic order information
@@ -45,7 +45,7 @@ struct Input {
 struct FeeEscalator {
     address token;
     uint256 startAmount;
-    uint256 maxAmount;
+    uint256 endAmount;
     // The time at which the fee starts to increase
     uint256 startTime;
     // The time at which the fee becomes static

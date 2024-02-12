@@ -10,9 +10,9 @@ library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
 
     string public constant FEE_ESCALATOR_TYPESTRING =
-        "FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)";
+        "FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)";
     bytes32 internal constant FEE_ESCALATOR_TYPEHASH =
-        keccak256("FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)");
+        keccak256("FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)");
 
     /// @notice thrown if the escalation direction is incorrect
     error InvalidAmounts();
@@ -52,7 +52,7 @@ library FeeEscalatorLib {
         pure
         returns (ISignatureTransfer.TokenPermissions memory permission)
     {
-        permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.maxAmount});
+        permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.endAmount});
     }
 
     /// @notice Handles transforming the fee data into the the resolved amounts and respective recipients.
@@ -61,7 +61,7 @@ library FeeEscalatorLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory details)
     {
-        uint256 resolvedAmount = resolve(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
+        uint256 resolvedAmount = resolve(fee.startAmount, fee.endAmount, fee.startTime, fee.endTime);
         details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
@@ -69,7 +69,7 @@ library FeeEscalatorLib {
     /// @return the eip-712 order hash
     function hash(FeeEscalator memory fee) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(FEE_ESCALATOR_TYPEHASH, fee.token, fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime)
+            abi.encode(FEE_ESCALATOR_TYPEHASH, fee.token, fee.startAmount, fee.endAmount, fee.startTime, fee.endTime)
         );
     }
 }

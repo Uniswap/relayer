@@ -26,8 +26,7 @@ library RelayOrderLib {
         "RelayOrder(",
         "address reactor,",
         "address swapper,",
-        "uint256[] amounts,",
-        "address[] recipients,",
+        "address inputRecipient,",
         "FeeEscalator fee,",
         "bytes[] actions)"
     );
@@ -54,15 +53,9 @@ library RelayOrderLib {
         pure
         returns (ISignatureTransfer.TokenPermissions[] memory permissions)
     {
-        // add one for fee escalator
-        uint256 numPermissions = order.inputs.length + 1;
-        permissions = new ISignatureTransfer.TokenPermissions[](numPermissions);
-
-        for (uint256 i = 0; i < order.inputs.length; i++) {
-            permissions[i] =
-                ISignatureTransfer.TokenPermissions({token: order.inputs[i].token, amount: order.inputs[i].amount});
-        }
-        permissions[numPermissions - 1] = order.fee.toTokenPermissions();
+        permissions = new ISignatureTransfer.TokenPermissions[](2);
+        permissions[0] = ISignatureTransfer.TokenPermissions({token: order.input.token, amount: order.input.amount});
+        permissions[1] = order.fee.toTokenPermissions();
     }
 
     /// @notice get the transfer details needed for the permit call
@@ -72,17 +65,12 @@ library RelayOrderLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
     {
-        // add one for fee escalator
-        uint256 numDetails = order.inputs.length + 1;
-        details = new ISignatureTransfer.SignatureTransferDetails[](numDetails);
-
-        for (uint256 i = 0; i < order.inputs.length; i++) {
-            details[i] = ISignatureTransfer.SignatureTransferDetails({
-                to: order.inputs[i].recipient,
-                requestedAmount: order.inputs[i].amount
-            });
-        }
-        details[numDetails - 1] = order.fee.toTransferDetails(feeRecipient);
+        details = new ISignatureTransfer.SignatureTransferDetails[](2);
+        details[0] = ISignatureTransfer.SignatureTransferDetails({
+            to: order.input.recipient,
+            requestedAmount: order.input.amount
+        });
+        details[1] = order.fee.toTransferDetails(feeRecipient);
     }
 
     /// @notice transfer all input tokens and the fee to their respective recipients
@@ -113,36 +101,17 @@ library RelayOrderLib {
 
     /// @notice hash the given order
     /// @param order the order to hash
-    /// @dev We do not hash the entire Input struct as only some of the input information is required in the witness (recipients, and amounts). The token and maxAmount are already hashed in the TokenPermissions struct of the permit.
+    /// @dev since token permissions contains the input token's address and amount, we only need to hash the recipient here
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
-        uint256 inputsLength = order.inputs.length;
-        // Build an array for the input amounts and recipients.
-        uint256[] memory amounts = new uint256[](inputsLength);
-        address[] memory recipients = new address[](inputsLength);
-
-        for (uint256 i = 0; i < inputsLength; i++) {
-            Input memory input = order.inputs[i];
-            amounts[i] = input.amount;
-            recipients[i] = input.recipient;
-        }
-
-        // Bytes[] must be hashed individually then concatenated according to EIP712.
-        uint256 actionsLength = order.actions.length;
-        bytes32[] memory hashedActions = new bytes32[](actionsLength);
-        for (uint256 i = 0; i < actionsLength; i++) {
-            hashedActions[i] = keccak256(order.actions[i]);
-        }
-
         return keccak256(
             abi.encode(
                 RELAY_ORDER_TYPEHASH,
                 order.info.reactor,
                 order.info.swapper,
-                keccak256(abi.encodePacked(amounts)),
-                keccak256(abi.encodePacked(recipients)),
+                order.input.recipient,
                 order.fee.hash(),
-                keccak256(abi.encodePacked(hashedActions))
+                keccak256(order.data)
             )
         );
     }

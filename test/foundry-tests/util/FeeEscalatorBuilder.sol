@@ -11,7 +11,7 @@ library FeeEscalatorBuilder {
         return FeeEscalator({
             token: address(token),
             startAmount: ONE,
-            maxAmount: ONE,
+            endAmount: ONE,
             startTime: block.timestamp,
             endTime: block.timestamp
         });
@@ -26,8 +26,8 @@ library FeeEscalatorBuilder {
         return fee;
     }
 
-    function withMaxAmount(FeeEscalator memory fee, uint256 _maxAmount) internal pure returns (FeeEscalator memory) {
-        fee.maxAmount = _maxAmount;
+    function withendAmount(FeeEscalator memory fee, uint256 _endAmount) internal pure returns (FeeEscalator memory) {
+        fee.endAmount = _endAmount;
         return fee;
     }
 

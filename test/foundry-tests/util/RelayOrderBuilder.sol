@@ -11,16 +11,16 @@ import {FeeEscalatorBuilder} from "./FeeEscalatorBuilder.sol";
 library RelayOrderBuilder {
     using OrderInfoBuilder for OrderInfo;
 
-    function init(OrderInfo memory info, Input[] memory inputs, FeeEscalator memory fee)
+    function init(OrderInfo memory info, Input memory input, FeeEscalator memory fee)
         internal
         pure
         returns (RelayOrder memory)
     {
-        return RelayOrder({info: info, inputs: inputs, fee: fee, actions: new bytes[](0)});
+        return RelayOrder({info: info, input: input, fee: fee, data: bytes("")});
     }
 
-    function withActions(RelayOrder memory order, bytes[] memory _actions) internal pure returns (RelayOrder memory) {
-        order.actions = _actions;
+    function withData(RelayOrder memory order, bytes memory _data) internal pure returns (RelayOrder memory) {
+        order.data = _data;
         return order;
     }
 
@@ -30,15 +30,11 @@ library RelayOrderBuilder {
     }
 
     function initDefault(ERC20 token, address reactor, address swapper) internal view returns (RelayOrder memory) {
-        Input[] memory inputs = new Input[](1);
-        // Default input does not decay.
-        inputs[0] = InputBuilder.init(token);
-
         return RelayOrder({
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
-            inputs: inputs,
+            input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
-            actions: new bytes[](0)
+            data: bytes("")
         });
     }
 }
