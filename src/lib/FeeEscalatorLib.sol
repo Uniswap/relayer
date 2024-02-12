@@ -62,7 +62,7 @@ library FeeEscalatorLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory details)
     {
-        uint256 resolvedAmount = FeeEscalatorLib.decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
+        uint256 resolvedAmount = decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
         details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
