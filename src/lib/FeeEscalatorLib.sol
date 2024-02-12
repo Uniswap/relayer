@@ -38,11 +38,7 @@ library FeeEscalatorLib {
             unchecked {
                 uint256 elapsed = block.timestamp - startTime;
                 uint256 duration = endTime - startTime;
-                if (endAmount < startAmount) {
-                    resolvedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-                } else {
-                    resolvedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
-                }
+                resolvedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
             }
         }
     }
