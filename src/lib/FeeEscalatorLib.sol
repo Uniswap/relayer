@@ -18,7 +18,7 @@ library FeeEscalatorLib {
     error InvalidAmounts();
 
     /// @notice calculates an amount on a linear curve over time from startTime to endTime
-    /// @dev handles both positive and negative decay depending on startAmount and endAmount
+    /// @dev handles only increasing amounts from startAmount to endAmount
     /// @param startAmount The amount of tokens at startTime
     /// @param endAmount The amount of tokens at endTime
     /// @param startTime The time to start escalating linearly
