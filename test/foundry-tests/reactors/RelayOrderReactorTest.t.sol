@@ -67,7 +67,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         Input[] memory inputs = new Input[](1);
         inputs[0] = InputBuilder.init(tokenIn).withAmount(ONE);
 
-        FeeEscalator memory fee = FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withMaxAmount(ONE).withEndTime(block.timestamp + 1000);
+        FeeEscalator memory fee =
+            FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withMaxAmount(ONE).withEndTime(block.timestamp + 1000);
         OrderInfo memory orderInfo =
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs, fee);

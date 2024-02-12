@@ -544,8 +544,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
         assertEq(ecrecover(digest, v, r, s), signer);
 
-        permitData =
-            abi.encode(signer, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
+        permitData = abi.encode(signer, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)
