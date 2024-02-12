@@ -60,13 +60,14 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     }
 
     /// @dev Test of a simple execute
-    /// @dev this order has no actions and its inputs decay from 0 ether to 1 ether
+    /// @dev this order has no actions and its fee increases from 0 ether to 1 ether
     function test_execute_withDecay() public {
         tokenIn.mint(address(swapper), ONE * 100);
 
         Input[] memory inputs = new Input[](1);
-        inputs[0] = InputBuilder.init(tokenIn).withAmount(0); // Decay from 0 to 1.
-        FeeEscalator memory fee = FeeEscalatorBuilder.init(tokenIn);
+        inputs[0] = InputBuilder.init(tokenIn).withAmount(ONE);
+
+        FeeEscalator memory fee = FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withMaxAmount(ONE).withEndTime(block.timestamp + 1000);
         OrderInfo memory orderInfo =
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs, fee);
@@ -86,12 +87,13 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         assertEq(tokenIn.balanceOf(address(filler)), 250000000000000000);
     }
 
-    function test_execute_noInputs() public {
+    function test_execute_noInputsOrFee() public {
         Input[] memory inputs = new Input[](0);
-        FeeEscalator memory fee = FeeEscalatorBuilder.init(tokenIn);
+        FeeEscalator memory noFee;
+
         OrderInfo memory orderInfo =
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs, fee);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, inputs, noFee);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -147,11 +149,13 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     }
 
     function test_multicall_execute_noDecay_specifiedInputRecipients() public {
+        FeeEscalator memory noFee;
+
         tokenIn.mint(address(swapper), ONE * 100);
         // First order.
-        RelayOrder memory order0 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withFee(noFee);
         order0.inputs[0] = order0.inputs[0].withRecipient(address(this));
-        RelayOrder memory order1 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper).withFee(noFee);
         order1.inputs[0] = order1.inputs[0].withRecipient(address(this));
         order1.info = order1.info.withNonce(1); // Increment nonce.
 
@@ -214,7 +218,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(block.timestamp + 1000);
-        order.inputs[0] = order.inputs[0].withAmount(0); // Decay from 0 to 1.
+        order.fee = order.fee.withStartAmount(0).withMaxAmount(ONE).withEndTime(block.timestamp + 1000); // increase from 0 to 1.
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -238,6 +242,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
     function test_execute_reverts_EndTimeBeforeStartTime() public {
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.fee = order.fee.withEndTime(block.timestamp + 100);
+        order.fee = order.fee.withStartTime(block.timestamp + 200);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -249,6 +255,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_execute_reverts_DeadlineBeforeEndTime() public {
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
         order.info = order.info.withDeadline(block.timestamp + 100);
+        order.fee = order.fee.withEndTime(block.timestamp + 200);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 

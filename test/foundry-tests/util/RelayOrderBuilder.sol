@@ -24,6 +24,11 @@ library RelayOrderBuilder {
         return order;
     }
 
+    function withFee(RelayOrder memory order, FeeEscalator memory _fee) internal pure returns (RelayOrder memory) {
+        order.fee = _fee;
+        return order;
+    }
+
     function initDefault(ERC20 token, address reactor, address swapper) internal view returns (RelayOrder memory) {
         Input[] memory inputs = new Input[](1);
         // Default input does not decay.
