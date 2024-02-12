@@ -16,10 +16,9 @@ library FeeEscalatorLib {
     function toPermit(FeeEscalator memory fee)
         internal
         pure
-        returns (ISignatureTransfer.TokenPermissions[] memory permissions)
+        returns (ISignatureTransfer.TokenPermissions memory permission)
     {
-        permissions = new ISignatureTransfer.TokenPermissions[](1);
-        permissions[0] = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.maxAmount});
+        permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.maxAmount});
     }
     /// @notice Handles transforming the input data into the the decayed amounts and respective recipients.
 
