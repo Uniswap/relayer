@@ -16,6 +16,7 @@ library FeeEscalatorLib {
 
     /// @notice thrown if the escalation direction is incorrect
     error InvalidAmounts();
+    /// @notice thrown if the end time is before the start time
     error EndTimeBeforeStartTime();
 
     /// @notice calculates an amount on a linear curve over time from startTime to endTime
@@ -55,14 +56,14 @@ library FeeEscalatorLib {
         permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.endAmount});
     }
 
-    /// @notice Handles transforming the fee data into the the resolved amounts and respective recipients.
+    /// @notice Transforms the fee data into the the resolved amount and the provided recipient.
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
         internal
         view
-        returns (ISignatureTransfer.SignatureTransferDetails memory details)
+        returns (ISignatureTransfer.SignatureTransferDetails memory detail)
     {
         uint256 resolvedAmount = resolve(fee.startAmount, fee.endAmount, fee.startTime, fee.endTime);
-        details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
+        detail = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
     /// @notice hash the fee
