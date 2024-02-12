@@ -24,7 +24,7 @@ library FeeEscalatorLib {
     /// @param endAmount The amount of tokens at endTime
     /// @param startTime The time to start escalating linearly
     /// @param endTime The time to stop escalating linearly
-    function decay(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+    function resolve(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
         internal
         view
         returns (uint256 resolvedAmount)
@@ -61,7 +61,7 @@ library FeeEscalatorLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory details)
     {
-        uint256 resolvedAmount = decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
+        uint256 resolvedAmount = resolve(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
         details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
