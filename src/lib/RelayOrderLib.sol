@@ -28,7 +28,7 @@ library RelayOrderLib {
         "address swapper,",
         "address inputRecipient,",
         "FeeEscalator fee,",
-        "bytes[] actions)"
+        "bytes data)"
     );
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
