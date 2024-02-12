@@ -2,15 +2,50 @@
 pragma solidity ^0.8.0;
 
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {Input} from "../base/ReactorStructs.sol";
-import {RelayDecayLib} from "./RelayDecayLib.sol";
 import {FeeEscalator, Input} from "../base/ReactorStructs.sol";
 
 library FeeEscalatorLib {
+    using FixedPointMathLib for uint256;
+
     string public constant FEE_ESCALATOR_TYPESTRING =
         "FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)";
     bytes32 internal constant FEE_ESCALATOR_TYPEHASH =
         keccak256("FeeEscalator(address token,uint256 startAmount,uint256 maxAmount,uint256 startTime,uint256 endTime)");
+
+    /// @notice thrown if the escalation direction is incorrect
+    error InvalidAmounts();
+
+    /// @notice calculates an amount on a linear curve over time from startTime to endTime
+    /// @dev handles both positive and negative decay depending on startAmount and endAmount
+    /// @param startAmount The amount of tokens at startTime
+    /// @param endAmount The amount of tokens at endTime
+    /// @param startTime The time to start escalating linearly
+    /// @param endTime The time to stop escalating linearly
+    function decay(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+        internal
+        view
+        returns (uint256 resolvedAmount)
+    {
+        if (startAmount > endAmount) {
+            revert InvalidAmounts();
+        } else if (endTime <= block.timestamp) {
+            resolvedAmount = endAmount;
+        } else if (startTime >= block.timestamp) {
+            resolvedAmount = startAmount;
+        } else {
+            unchecked {
+                uint256 elapsed = block.timestamp - startTime;
+                uint256 duration = endTime - startTime;
+                if (endAmount < startAmount) {
+                    resolvedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+                } else {
+                    resolvedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
+                }
+            }
+        }
+    }
 
     /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
     function toPermit(FeeEscalator memory fee)
@@ -27,8 +62,8 @@ library FeeEscalatorLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory details)
     {
-        uint256 decayedAmount = RelayDecayLib.decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
-        details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: decayedAmount});
+        uint256 resolvedAmount = FeeEscalatorLib.decay(fee.startAmount, fee.maxAmount, fee.startTime, fee.endTime);
+        details = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
     /// @notice hash the fee
