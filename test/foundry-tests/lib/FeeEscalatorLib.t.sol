@@ -62,12 +62,9 @@ contract FeeEscalatorLibTest is Test {
         FeeEscalatorLib.resolve(2 ether, 1 ether, 100, 200);
     }
 
-    function testRelayFeeEscalationBounded(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 startTime,
-        uint256 endTime
-    ) public {
+    function testRelayFeeEscalationBounded(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+        public
+    {
         vm.assume(endAmount > startAmount);
         vm.assume(endTime >= startTime);
         uint256 decayed = FeeEscalatorLib.resolve(startAmount, endAmount, startTime, endTime);
