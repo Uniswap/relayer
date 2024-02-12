@@ -130,13 +130,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = USDC;
         ERC20 gasToken = USDC;
 
-        
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
         uint256 amountOutMin = 95 * USDC_ONE;
-
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
@@ -183,12 +181,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.prank(swapper);
         PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
 
-        
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee = FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * ONE).withendAmount(10 * ONE);
 
         uint256 amountOutMin = 95 * USDC_ONE;
-
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
@@ -236,14 +232,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.prank(swapper);
         PERMIT2.invalidateUnorderedNonces(0x00, 0x01);
 
-        
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
 
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
         uint256 amountOutMin = 95 * USDC_ONE;
-
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
@@ -332,7 +326,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // making a USDC -> DAI swap
         
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
-
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
@@ -383,12 +376,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // Testing a basic relay order where the swap's output is native ETH
     function testExecuteWithNativeAsOutput() public {
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
-
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
         uint256 amountOutMin = 51651245170979377; // with 5% slipapge at forked block
-
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_ETH");
 
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
@@ -428,9 +419,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     // in the case wehre the swapper incorrectly sets the recipient to an address that is not theirs, but the
     // calldata includes a SWEEP back to them which should cause the transaction to revert
     function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
-        
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
-
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
@@ -457,15 +446,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 gasToken = USDC;
 
         address feeRecipient = makeAddr("feeRecipient");
-
-        
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
-
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withendAmount(10 * USDC_ONE);
 
         uint256 amountOutMin = 95 * USDC_ONE;
-
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(

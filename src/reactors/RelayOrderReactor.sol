@@ -29,11 +29,16 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
+    /// @notice Execute a RelayOrder
+    /// @param signedOrder The signed order to execute
+    /// @param feeRecipient The address to send the fee to
     function execute(SignedOrder calldata signedOrder, address feeRecipient) external {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
+
         bytes32 orderHash = order.hash();
         order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
+
         (bool success, bytes memory result) = universalRouter.call(order.data);
         if (!success) {
             // bubble up all errors, including custom errors which are encoded like functions
