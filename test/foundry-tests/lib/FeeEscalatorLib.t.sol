@@ -43,6 +43,11 @@ contract FeeEscalatorLibTest is Test {
         assertEq(FeeEscalatorLib.decay(1 ether, 2 ether, 100, 200), 2 ether);
     }
 
+    function testRelayFeeEscalationRevertsWithWrongEndStartTimes() public {
+        vm.expectRevert(FeeEscalatorLib.EndTimeBeforeStartTime.selector);
+        FeeEscalatorLib.decay(1 ether, 2 ether, 200, 100);
+    }
+
     function testRelayFeeEscalationEqualAmounts(uint256 amount, uint256 decayStartTime, uint256 decayEndTime) public {
         vm.assume(decayEndTime >= decayStartTime);
         uint256 time = decayStartTime;
