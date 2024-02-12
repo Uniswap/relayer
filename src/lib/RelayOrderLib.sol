@@ -66,7 +66,6 @@ library RelayOrderLib {
     }
 
     /// @notice get the transfer details needed for the permit call
-    /// @param order 
     /// @param feeRecipient the address to receive any specified fee
     function toTransferDetails(RelayOrder memory order, address feeRecipient)
         internal
