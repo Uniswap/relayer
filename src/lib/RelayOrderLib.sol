@@ -21,7 +21,7 @@ library RelayOrderLib {
         )
     );
 
-    /// @dev Max amounts and token addresses are signed in the token permissions of the permit information.
+    /// @dev input token addresses are signed in the token permissions of the permit information.
     bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
         "RelayOrder(",
         "address reactor,",
@@ -48,6 +48,7 @@ library RelayOrderLib {
         }
     }
 
+    /// @notice get the permissions necessary for the permit call
     function toPermit(RelayOrder memory order)
         internal
         pure
@@ -64,6 +65,9 @@ library RelayOrderLib {
         permissions[numPermissions - 1] = order.fee.toPermit();
     }
 
+    /// @notice get the transfer details needed for the permit call
+    /// @param order 
+    /// @param feeRecipient the address to receive any specified fee
     function toTransferDetails(RelayOrder memory order, address feeRecipient)
         internal
         view
@@ -82,6 +86,8 @@ library RelayOrderLib {
         details[numPermissions - 1] = order.fee.toTransferDetails(feeRecipient);
     }
 
+    /// @notice transfer all input tokens and the fee to their respective recipients
+    /// @dev resolves the fee amount on the curve specified in the order    
     function transferInputTokens(
         RelayOrder memory order,
         bytes32 orderHash,
