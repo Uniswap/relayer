@@ -49,7 +49,7 @@ library RelayOrderLib {
     }
 
     /// @notice get the permissions necessary for the permit call
-    function toPermit(RelayOrder memory order)
+    function toTokenPermissions(RelayOrder memory order)
         internal
         pure
         returns (ISignatureTransfer.TokenPermissions[] memory permissions)
@@ -62,7 +62,7 @@ library RelayOrderLib {
             permissions[i] =
                 ISignatureTransfer.TokenPermissions({token: order.inputs[i].token, amount: order.inputs[i].amount});
         }
-        permissions[numPermissions - 1] = order.fee.toPermit();
+        permissions[numPermissions - 1] = order.fee.toTokenPermissions();
     }
 
     /// @notice get the transfer details needed for the permit call
@@ -73,8 +73,8 @@ library RelayOrderLib {
         returns (ISignatureTransfer.SignatureTransferDetails[] memory details)
     {
         // add one for fee escalator
-        uint256 numPermissions = order.inputs.length + 1;
-        details = new ISignatureTransfer.SignatureTransferDetails[](numPermissions);
+        uint256 numDetails = order.inputs.length + 1;
+        details = new ISignatureTransfer.SignatureTransferDetails[](numDetails);
 
         for (uint256 i = 0; i < order.inputs.length; i++) {
             details[i] = ISignatureTransfer.SignatureTransferDetails({
@@ -82,11 +82,11 @@ library RelayOrderLib {
                 requestedAmount: order.inputs[i].amount
             });
         }
-        details[numPermissions - 1] = order.fee.toTransferDetails(feeRecipient);
+        details[numDetails - 1] = order.fee.toTransferDetails(feeRecipient);
     }
 
     /// @notice transfer all input tokens and the fee to their respective recipients
-    /// @dev resolves the fee amount on the curve specified in the order    
+    /// @dev resolves the fee amount on the curve specified in the order
     function transferInputTokens(
         RelayOrder memory order,
         bytes32 orderHash,
@@ -94,7 +94,7 @@ library RelayOrderLib {
         address feeRecipient,
         bytes calldata sig
     ) internal {
-        ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
+        ISignatureTransfer.TokenPermissions[] memory permissions = order.toTokenPermissions();
         ISignatureTransfer.SignatureTransferDetails[] memory details = order.toTransferDetails(feeRecipient);
 
         permit2.permitWitnessTransferFrom(

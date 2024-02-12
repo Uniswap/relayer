@@ -9,7 +9,7 @@ import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 struct RelayOrder {
     // Generic order info
     OrderInfo info;
-    // Token info for any onchain actions
+    // Token info for onchain actions
     Input[] inputs;
     // The fee offered for the order
     FeeEscalator fee;

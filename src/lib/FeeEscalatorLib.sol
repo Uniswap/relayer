@@ -16,6 +16,7 @@ library FeeEscalatorLib {
 
     /// @notice thrown if the escalation direction is incorrect
     error InvalidAmounts();
+    error EndTimeBeforeStartTime();
 
     /// @notice calculates an amount on a linear curve over time from startTime to endTime
     /// @dev handles only increasing amounts from startAmount to endAmount
@@ -30,6 +31,8 @@ library FeeEscalatorLib {
     {
         if (startAmount > endAmount) {
             revert InvalidAmounts();
+        } else if (endTime < startTime) {
+            revert EndTimeBeforeStartTime();
         } else if (endTime <= block.timestamp) {
             resolvedAmount = endAmount;
         } else if (startTime >= block.timestamp) {
@@ -44,7 +47,7 @@ library FeeEscalatorLib {
     }
 
     /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
-    function toPermit(FeeEscalator memory fee)
+    function toTokenPermissions(FeeEscalator memory fee)
         internal
         pure
         returns (ISignatureTransfer.TokenPermissions memory permission)

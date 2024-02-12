@@ -28,7 +28,7 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        ISignatureTransfer.TokenPermissions[] memory permissions = order.toPermit();
+        ISignatureTransfer.TokenPermissions[] memory permissions = order.toTokenPermissions();
 
         ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
             permitted: permissions,
