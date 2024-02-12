@@ -5,7 +5,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {ResolvedInput, RelayOrder} from "../base/ReactorStructs.sol";
+import {RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Multicall} from "../base/Multicall.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
@@ -31,14 +31,11 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
-    function execute(SignedOrder calldata signedOrder, address feeRecipient)
-        external
-        returns (ResolvedInput[] memory resolvedInputs)
-    {
+    function execute(SignedOrder calldata signedOrder, address feeRecipient) external {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
         bytes32 orderHash = order.hash();
-        resolvedInputs = order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
+        order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
         order.actions.execute(universalRouter);
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
