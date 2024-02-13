@@ -13,7 +13,8 @@ library FeeEscalatorBuilder {
             startAmount: ONE,
             endAmount: ONE,
             startTime: block.timestamp,
-            endTime: block.timestamp
+            endTime: block.timestamp,
+            recipient: address(0)
         });
     }
 
@@ -38,6 +39,11 @@ library FeeEscalatorBuilder {
 
     function withEndTime(FeeEscalator memory fee, uint256 _endTime) internal pure returns (FeeEscalator memory) {
         fee.endTime = _endTime;
+        return fee;
+    }
+
+    function withRecipient(FeeEscalator memory fee, address _recipient) internal pure returns (FeeEscalator memory) {
+        fee.recipient = _recipient;
         return fee;
     }
 }

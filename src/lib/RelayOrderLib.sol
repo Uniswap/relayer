@@ -112,7 +112,7 @@ library RelayOrderLib {
                 order.info.swapper,
                 order.input.recipient,
                 order.fee.hash(),
-                keccak256(order.data)
+                keccak256(order.actions)
             )
         );
     }

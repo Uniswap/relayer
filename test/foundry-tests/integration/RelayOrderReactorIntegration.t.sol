@@ -141,7 +141,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -191,7 +191,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -244,7 +244,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -287,7 +287,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -334,7 +334,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(0);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
@@ -384,7 +384,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
             block.timestamp + 100
         ).withNonce(0);
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -429,7 +429,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(0);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -456,7 +456,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withData(methodParameters.data);
+        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));

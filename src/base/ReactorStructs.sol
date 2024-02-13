@@ -14,7 +14,7 @@ struct RelayOrder {
     // The fee offered for the order
     FeeEscalator fee;
     // ecnoded data to execute onchain
-    bytes data;
+    bytes actions;
 }
 
 /// @dev generic order information
@@ -50,4 +50,6 @@ struct FeeEscalator {
     uint256 startTime;
     // The time at which the fee becomes static
     uint256 endTime;
+    // The address to which the fee will be paid, use address(0) for msg.sender
+    address recipient;
 }

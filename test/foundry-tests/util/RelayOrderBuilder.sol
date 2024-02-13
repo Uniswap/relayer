@@ -16,11 +16,11 @@ library RelayOrderBuilder {
         pure
         returns (RelayOrder memory)
     {
-        return RelayOrder({info: info, input: input, fee: fee, data: bytes("")});
+        return RelayOrder({info: info, input: input, fee: fee, actions: bytes("")});
     }
 
-    function withData(RelayOrder memory order, bytes memory _data) internal pure returns (RelayOrder memory) {
-        order.data = _data;
+    function withActions(RelayOrder memory order, bytes memory _actions) internal pure returns (RelayOrder memory) {
+        order.actions = _actions;
         return order;
     }
 
@@ -34,7 +34,7 @@ library RelayOrderBuilder {
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
-            data: bytes("")
+            actions: bytes("")
         });
     }
 }
