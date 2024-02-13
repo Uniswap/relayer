@@ -50,6 +50,6 @@ struct FeeEscalator {
     uint256 startTime;
     // The time at which the fee becomes static
     uint256 endTime;
-    // The address to which the fee will be paid, use address(0) for msg.sender
+    // The address to which the fee will be paid
     address recipient;
 }

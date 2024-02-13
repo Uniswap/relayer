@@ -2,10 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {FeeEscalatorLib} from "../../../src/lib/FeeEscalatorLib.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 
 contract FeeEscalatorLibTest is Test {
+    using FeeEscalatorLib for FeeEscalator;
+
     function testRelayFeeEscalationNoEscalation(uint256 amount, uint256 startTime, uint256 endTime) public {
         vm.assume(endTime >= startTime);
         assertEq(FeeEscalatorLib.resolve(amount, amount, startTime, endTime), amount);
@@ -70,5 +74,35 @@ contract FeeEscalatorLibTest is Test {
         uint256 resolved = FeeEscalatorLib.resolve(startAmount, endAmount, startTime, endTime);
         assertGe(resolved, startAmount);
         assertLe(resolved, endAmount);
+    }
+
+    function test_toTransferDetails_withSpecifiedRecipient() public {
+        address filler = makeAddr("filler");
+        FeeEscalator memory fee = FeeEscalator({
+            token: address(this),
+            startAmount: 1 ether,
+            endAmount: 1 ether,
+            startTime: 0,
+            endTime: 0,
+            recipient: address(this)
+        });
+        ISignatureTransfer.SignatureTransferDetails memory details = fee.toTransferDetails(filler);
+        assertEq(details.to, address(this));
+        assertEq(details.requestedAmount, 1 ether);
+    }
+
+    function test_toTransferDetails_withNoRecipient() public {
+        address filler = makeAddr("filler");
+        FeeEscalator memory fee = FeeEscalator({
+            token: address(this),
+            startAmount: 1 ether,
+            endAmount: 1 ether,
+            startTime: 0,
+            endTime: 0,
+            recipient: address(0)
+        });
+        ISignatureTransfer.SignatureTransferDetails memory details = fee.toTransferDetails(filler);
+        assertEq(details.to, filler);
+        assertEq(details.requestedAmount, 1 ether);
     }
 }
