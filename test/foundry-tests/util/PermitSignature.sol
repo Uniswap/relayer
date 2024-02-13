@@ -75,7 +75,10 @@ contract PermitSignature is Test {
     }
 
     /// @notice Generate permit data for a token to be submitted to permit on the reactor
-    function generatePermitData(address permit2, ERC20 token, uint256 signerPrivateKey) internal returns (bytes memory permitData) {
+    function generatePermitData(address permit2, ERC20 token, uint256 signerPrivateKey)
+        internal
+        returns (bytes memory permitData)
+    {
         address signer = vm.addr(signerPrivateKey);
         bytes32 digest = keccak256(
             abi.encodePacked(
