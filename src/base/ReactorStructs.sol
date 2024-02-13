@@ -43,10 +43,3 @@ struct Input {
     uint256 startAmount;
     uint256 maxAmount;
 }
-
-/// @notice Contains the final resolved transfer information. Amounts are decayed and feeRecipient is returned.
-struct ResolvedInput {
-    address token;
-    address recipient;
-    uint256 amount;
-}

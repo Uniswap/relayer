@@ -4,14 +4,13 @@ pragma solidity ^0.8.0;
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, Input, ResolvedInput} from "../base/ReactorStructs.sol";
+import {RelayOrder, Input} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {InputsLib} from "./InputsLib.sol";
 
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
     using InputsLib for Input[];
-    using InputsLib for ResolvedInput[];
 
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
@@ -51,11 +50,10 @@ library RelayOrderLib {
         IPermit2 permit2,
         address feeRecipient,
         bytes calldata sig
-    ) internal returns (ResolvedInput[] memory resolvedInputs) {
+    ) internal {
         ISignatureTransfer.TokenPermissions[] memory permissions = order.inputs.toPermit();
-
-        resolvedInputs = order.inputs.toResolvedInputs(order.decayStartTime, order.decayEndTime, feeRecipient);
-        ISignatureTransfer.SignatureTransferDetails[] memory details = resolvedInputs.toTransferDetails();
+        ISignatureTransfer.SignatureTransferDetails[] memory details =
+            order.inputs.toTransferDetails(feeRecipient, order.decayStartTime, order.decayEndTime);
 
         permit2.permitWitnessTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({
