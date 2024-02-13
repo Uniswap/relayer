@@ -15,7 +15,6 @@ library RelayOrderLib {
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked(
             "RelayOrder witness)",
-            FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
             RELAY_ORDER_TYPESTRING,
             PermitHash._TOKEN_PERMISSIONS_TYPESTRING
         )
@@ -27,7 +26,10 @@ library RelayOrderLib {
         "address reactor,",
         "address swapper,",
         "address inputRecipient,",
-        "FeeEscalator fee,",
+        "uint256 feeStartAmount,",
+        "uint256 feeStartTime,",
+        "uint256 feeEndTime,",
+        "address feeRecipient,",
         "bytes data)"
     );
 
@@ -37,10 +39,6 @@ library RelayOrderLib {
     function validate(RelayOrder memory order) internal view {
         if (order.info.deadline < order.fee.endTime) {
             revert ReactorErrors.DeadlineBeforeEndTime();
-        }
-
-        if (order.fee.endTime < order.fee.startTime) {
-            revert ReactorErrors.EndTimeBeforeStartTime();
         }
 
         if (address(this) != address(order.info.reactor)) {
@@ -111,7 +109,10 @@ library RelayOrderLib {
                 order.info.reactor,
                 order.info.swapper,
                 order.input.recipient,
-                order.fee.hash(),
+                order.fee.startAmount,
+                order.fee.startTime,
+                order.fee.endTime,
+                order.fee.recipient,
                 keccak256(order.actions)
             )
         );

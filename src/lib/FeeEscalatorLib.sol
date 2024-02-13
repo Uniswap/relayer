@@ -9,11 +9,6 @@ import {FeeEscalator, Input} from "../base/ReactorStructs.sol";
 library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
 
-    string public constant FEE_ESCALATOR_TYPESTRING =
-        "FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime,address recipient)";
-    bytes32 internal constant FEE_ESCALATOR_TYPEHASH =
-        keccak256("FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime,address recipient)");
-
     /// @notice thrown if the escalation direction is incorrect
     error InvalidAmounts();
     /// @notice thrown if the end time is before the start time
@@ -68,13 +63,5 @@ library FeeEscalatorLib {
             to: fee.recipient == address(0) ? feeRecipient : fee.recipient,
             requestedAmount: resolvedAmount
         });
-    }
-
-    /// @notice hash the fee
-    /// @return the eip-712 order hash
-    function hash(FeeEscalator memory fee) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(FEE_ESCALATOR_TYPEHASH, fee.token, fee.startAmount, fee.endAmount, fee.startTime, fee.endTime, fee.recipient)
-        );
     }
 }
