@@ -48,7 +48,7 @@ contract FeeEscalatorLibTest is Test {
     }
 
     function testRelayFeeEscalationRevertsWithWrongEndStartTimes() public {
-        vm.expectRevert(FeeEscalatorLib.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
         FeeEscalatorLib.resolve(1 ether, 2 ether, 200, 100);
     }
 
@@ -62,7 +62,7 @@ contract FeeEscalatorLibTest is Test {
     }
 
     function testRelayFeeEscalationInvalidAmounts() public {
-        vm.expectRevert(FeeEscalatorLib.InvalidAmounts.selector);
+        vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
         FeeEscalatorLib.resolve(2 ether, 1 ether, 100, 200);
     }
 

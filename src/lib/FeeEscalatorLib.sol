@@ -3,16 +3,11 @@ pragma solidity ^0.8.0;
 
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
-import {Input} from "../base/ReactorStructs.sol";
-import {FeeEscalator, Input} from "../base/ReactorStructs.sol";
+import {FeeEscalator} from "../base/ReactorStructs.sol";
+import {ReactorErrors} from "../base/ReactorErrors.sol";
 
 library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
-
-    /// @notice thrown if the escalation direction is incorrect
-    error InvalidAmounts();
-    /// @notice thrown if the end time is before the start time
-    error EndTimeBeforeStartTime();
 
     /// @notice calculates an amount on a linear curve over time from startTime to endTime
     /// @dev handles only increasing amounts from startAmount to endAmount
@@ -26,9 +21,9 @@ library FeeEscalatorLib {
         returns (uint256 resolvedAmount)
     {
         if (startAmount > endAmount) {
-            revert InvalidAmounts();
+            revert ReactorErrors.InvalidAmounts();
         } else if (endTime < startTime) {
-            revert EndTimeBeforeStartTime();
+            revert ReactorErrors.EndTimeBeforeStartTime();
         } else if (endTime <= block.timestamp) {
             resolvedAmount = endAmount;
         } else if (startTime >= block.timestamp) {
@@ -43,6 +38,7 @@ library FeeEscalatorLib {
     }
 
     /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
+    /// @dev the amount signed in the token permissions must be the endAmount of the fee
     function toTokenPermissions(FeeEscalator memory fee)
         internal
         pure

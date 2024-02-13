@@ -319,7 +319,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ERC20 tokenOut = DAI;
         ERC20 gasToken = USDC;
 
-        bytes memory permitData = generatePermitData(USDC, swapper2PrivateKey);
+        bytes memory permitData = generatePermitData(address(PERMIT2), USDC, swapper2PrivateKey);
 
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
@@ -479,32 +479,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             "Swapper did not receive enough output"
         );
         assertEq(tokenOut.balanceOf((feeRecipient)), 10 * USDC_ONE, "fee recipient balance");
-    }
-
-    function generatePermitData(ERC20 token, uint256 signerPrivateKey) internal returns (bytes memory permitData) {
-        address signer = vm.addr(signerPrivateKey);
-        // sign permit for USDC
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                token.DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
-                        signer,
-                        address(PERMIT2),
-                        type(uint256).max - 1, // infinite approval
-                        token.nonces(signer),
-                        type(uint256).max - 1 // infinite deadline
-                    )
-                )
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
-        assertEq(ecrecover(digest, v, r, s), signer);
-
-        permitData = abi.encode(signer, address(PERMIT2), type(uint256).max - 1, type(uint256).max - 1, v, r, s);
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

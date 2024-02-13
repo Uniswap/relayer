@@ -7,6 +7,9 @@ interface ReactorErrors {
 
     /// @notice thrown when an order's end time is before its start time
     error EndTimeBeforeStartTime();
+    
+    /// @notice thrown if the escalation direction is incorrect
+    error InvalidAmounts();
 
     /// @notice thrown when the order targets a different reactor
     error InvalidReactor();

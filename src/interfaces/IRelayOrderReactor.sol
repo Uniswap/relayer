@@ -14,7 +14,9 @@ interface IRelayOrderReactor is IMulticall {
     function execute(SignedOrder calldata signedOrder, address feeRecipient) external;
 
     /// @notice Execute a signed 2612-style permit.
-    /// The transaction will revert if the permit cannot be executed.
+    /// @param token the token to permit
+    /// @param data necessary permit data
+    /// @dev uses native 2612 permit if possible and falls back permit2 if not implemented on the token
     /// @dev A permit request can be combined with an execute action through multicall.
     function permit(ERC20 token, bytes calldata data) external;
 }

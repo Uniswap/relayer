@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -71,6 +72,32 @@ contract PermitSignature is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
+    }
+
+    /// @notice Generate permit data for a token to be submitted to permit on the reactor
+    function generatePermitData(address permit2, ERC20 token, uint256 signerPrivateKey) internal returns (bytes memory permitData) {
+        address signer = vm.addr(signerPrivateKey);
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                token.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        signer,
+                        permit2,
+                        type(uint256).max - 1, // infinite approval
+                        token.nonces(signer),
+                        type(uint256).max - 1 // infinite deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
+        assertEq(ecrecover(digest, v, r, s), signer);
+
+        permitData = abi.encode(signer, permit2, type(uint256).max - 1, type(uint256).max - 1, v, r, s);
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {

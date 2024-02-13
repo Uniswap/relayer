@@ -29,9 +29,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
-    /// @notice Execute a RelayOrder
-    /// @param signedOrder The signed order to execute
-    /// @param feeRecipient The address to send the fee to
+    /// @inheritdoc IRelayOrderReactor
     function execute(SignedOrder calldata signedOrder, address feeRecipient) external {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
@@ -49,10 +47,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
-    /// @notice Permit a token for spending
-    /// @dev uses native 2612 permit if possible and falls back permit2 if not implemented on the token
-    /// @param token the token to permit
-    /// @param data necessary permit data
+    /// @inheritdoc IRelayOrderReactor
     function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));

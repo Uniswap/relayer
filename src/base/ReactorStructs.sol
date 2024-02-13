@@ -41,7 +41,6 @@ struct Input {
 }
 
 /// @notice A RelayOrder can specify an increasing fee over time to be paid
-/// @dev The resolved amount will be sent to the passed in feeRecipient address
 struct FeeEscalator {
     address token;
     uint256 startAmount;
@@ -51,5 +50,6 @@ struct FeeEscalator {
     // The time at which the fee becomes static
     uint256 endTime;
     // The address to which the fee will be paid
+    // Note that address(0) will send the fee to the recipient specified by the filler of the order
     address recipient;
 }
