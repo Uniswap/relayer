@@ -76,7 +76,7 @@ contract FeeEscalatorLibTest is Test {
         assertLe(resolved, endAmount);
     }
 
-    function test_toTransferDetails_withSpecifiedRecipient() public {
+    function testToTransferDetailsWithSpecifiedRecipient() public {
         address filler = makeAddr("filler");
         FeeEscalator memory fee = FeeEscalator({
             token: address(this),
@@ -91,7 +91,7 @@ contract FeeEscalatorLibTest is Test {
         assertEq(details.requestedAmount, 1 ether);
     }
 
-    function test_toTransferDetails_withNoRecipient() public {
+    function testToTransferDetailsWithNoRecipient() public {
         address filler = makeAddr("filler");
         FeeEscalator memory fee = FeeEscalator({
             token: address(this),
