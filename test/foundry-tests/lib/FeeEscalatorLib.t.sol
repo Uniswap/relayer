@@ -76,6 +76,22 @@ contract FeeEscalatorLibTest is Test {
         assertLe(resolved, endAmount);
     }
 
+    function testToTokenPermissions() public {
+        address token = makeAddr("token");
+        FeeEscalator memory fee = FeeEscalator({
+            token: token,
+            startAmount: 1 ether,
+            endAmount: 2 ether,
+            startTime: 100,
+            endTime: 200,
+            recipient: address(0)
+        });
+        ISignatureTransfer.TokenPermissions memory permission = fee.toTokenPermissions();
+        assertEq(permission.token, token);
+        // should be endAmount
+        assertEq(permission.amount, 2 ether);
+    }
+
     function testToTransferDetailsWithSpecifiedRecipient() public {
         address filler = makeAddr("filler");
         FeeEscalator memory fee = FeeEscalator({
