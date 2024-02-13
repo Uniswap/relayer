@@ -13,11 +13,7 @@ library RelayOrderLib {
     using FeeEscalatorLib for FeeEscalator;
 
     string internal constant PERMIT2_ORDER_TYPE = string(
-        abi.encodePacked(
-            "RelayOrder witness)",
-            RELAY_ORDER_TYPESTRING,
-            PermitHash._TOKEN_PERMISSIONS_TYPESTRING
-        )
+        abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
     );
 
     /// @dev input token addresses are signed in the token permissions of the permit information.
