@@ -17,7 +17,7 @@ struct RelayOrder {
     bytes actions;
 }
 
-/// @dev generic order information
+/// @dev Generic order information
 struct OrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper
@@ -32,7 +32,7 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-/// @notice Every RelayOrder input is defined by a token, amount, and recipient,
+/// @notice Every Input is defined by a token, amount, and recipient,
 /// @dev These values are signed by the user
 struct Input {
     address token;

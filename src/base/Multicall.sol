@@ -6,6 +6,7 @@ import {IMulticall} from "../interfaces/IMulticall.sol";
 /// @title Multicall
 /// @notice Enables calling multiple methods in a single call to the contract
 abstract contract Multicall is IMulticall {
+    /// @inheritdoc IMulticall
     function multicall(bytes[] calldata data) public virtual returns (bytes[] memory results) {
         results = new bytes[](data.length);
         for (uint256 i = 0; i < data.length;) {

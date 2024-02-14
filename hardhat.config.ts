@@ -1,4 +1,3 @@
-import 'hardhat-typechain'
 import '@nomiclabs/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import dotenv from 'dotenv'
