@@ -9,11 +9,11 @@ import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 struct RelayOrder {
     // Generic order info
     OrderInfo info;
-    // Token info for onchain universalRouterCalldata
+    // Inputs needed for the universal router call
     Input input;
     // The fee offered for the order
     FeeEscalator fee;
-    // ecnoded data to execute onchain
+    // ecnoded data relayed to the universal router
     bytes universalRouterCalldata;
 }
 
