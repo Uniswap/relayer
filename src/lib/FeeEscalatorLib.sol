@@ -39,6 +39,7 @@ library FeeEscalatorLib {
 
     /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
     /// @dev the amount signed in the token permissions must be the endAmount of the fee
+    /// @param fee the order fee
     function toTokenPermissions(FeeEscalator memory fee)
         internal
         pure
@@ -47,7 +48,10 @@ library FeeEscalatorLib {
         permission = ISignatureTransfer.TokenPermissions({token: fee.token, amount: fee.endAmount});
     }
 
-    /// @notice Transforms the fee data into the the resolved amount and the provided recipient.
+    /// @notice Transforms the fee data into a SignatureTransferDetails struct needed for the permit call.
+    /// @dev the recipient is the fee.recipient if set, otherwise the caller provided feeRecipient
+    /// @param fee the order fee
+    /// @param feeRecipient the address to receive any specified fee
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
         internal
         view
