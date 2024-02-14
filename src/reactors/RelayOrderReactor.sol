@@ -5,12 +5,11 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-import {RelayOrder} from "../base/ReactorStructs.sol";
+import {Input, RelayOrder} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {Multicall} from "../base/Multicall.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {ActionsLib} from "../lib/ActionsLib.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
@@ -19,7 +18,6 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
-    using ActionsLib for bytes[];
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -31,15 +29,25 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         universalRouter = _universalRouter;
     }
 
+    /// @inheritdoc IRelayOrderReactor
     function execute(SignedOrder calldata signedOrder, address feeRecipient) external {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
+
         bytes32 orderHash = order.hash();
         order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
-        order.actions.execute(universalRouter);
+
+        (bool success, bytes memory result) = universalRouter.call(order.actions);
+        if (!success) {
+            // bubble up all errors, including custom errors which are encoded like functions
+            assembly {
+                revert(add(result, 0x20), mload(result))
+            }
+        }
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
+    /// @inheritdoc IRelayOrderReactor
     function permit(ERC20 token, bytes calldata data) external {
         (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));

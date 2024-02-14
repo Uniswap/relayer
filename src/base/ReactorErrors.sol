@@ -8,12 +8,12 @@ interface ReactorErrors {
     /// @notice thrown when an order's end time is before its start time
     error EndTimeBeforeStartTime();
 
+    /// @notice thrown if the escalation direction is incorrect
+    error InvalidAmounts();
+
     /// @notice thrown when the order targets a different reactor
     error InvalidReactor();
 
     /// @notice thrown if the order has expired
     error DeadlinePassed();
-
-    /// @notice thrown if the array lengths are mismatched for various inputs
-    error LengthMismatch();
 }

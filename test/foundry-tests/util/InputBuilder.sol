@@ -9,7 +9,7 @@ import {ONE} from "./Constants.sol";
 library InputBuilder {
     function init(ERC20 token) internal pure returns (Input memory) {
         // The default input does not decay, so the start and end amounts are the same.
-        return Input({token: address(token), recipient: address(0), startAmount: ONE, maxAmount: ONE});
+        return Input({token: address(token), recipient: address(0), amount: ONE});
     }
 
     function withRecipient(Input memory input, address _recipient) internal pure returns (Input memory) {
@@ -17,13 +17,8 @@ library InputBuilder {
         return input;
     }
 
-    function withStartAmount(Input memory input, uint256 _startAmount) internal pure returns (Input memory) {
-        input.startAmount = _startAmount;
-        return input;
-    }
-
-    function withMaxAmount(Input memory input, uint256 _maxAmount) internal pure returns (Input memory) {
-        input.maxAmount = _maxAmount;
+    function withAmount(Input memory input, uint256 _amount) internal pure returns (Input memory) {
+        input.amount = _amount;
         return input;
     }
 }
