@@ -9,7 +9,7 @@ import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 struct RelayOrder {
     // Generic order info
     OrderInfo info;
-    // Inputs needed for the universal router call
+    // Token info for the order
     Input input;
     // The fee offered for the order
     FeeEscalator fee;
