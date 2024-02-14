@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, Input, FeeEscalator} from "../base/ReactorStructs.sol";
+import {RelayOrder, FeeEscalator} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
 
@@ -16,7 +16,7 @@ library RelayOrderLib {
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
     );
 
-    /// @dev input token addresses are signed in the token permissions of the permit information.
+    /// @dev token addresses and maxAmounts are signed in the token permissions of the permit information.
     bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
         "RelayOrder(",
         "address reactor,",
