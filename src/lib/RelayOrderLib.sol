@@ -96,7 +96,7 @@ library RelayOrderLib {
 
     /// @notice hash the given order
     /// @param order the order to hash
-    /// @dev we only hash fields not included in the permit already (excluding token addresses and maxAmounts)
+    /// @dev we only hash fields not included in the permit already (excluding token addresses and fee endAmount)
     /// @return the eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         return keccak256(
