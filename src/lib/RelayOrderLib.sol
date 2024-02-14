@@ -25,7 +25,6 @@ library RelayOrderLib {
         "uint256 feeStartAmount,",
         "uint256 feeStartTime,",
         "uint256 feeEndTime,",
-        "address feeRecipient,",
         "bytes universalRouterCalldata)"
     );
 
@@ -108,7 +107,6 @@ library RelayOrderLib {
                 order.fee.startAmount,
                 order.fee.startTime,
                 order.fee.endTime,
-                order.fee.recipient,
                 keccak256(order.universalRouterCalldata)
             )
         );

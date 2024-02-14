@@ -57,11 +57,8 @@ library FeeEscalatorLib {
         view
         returns (ISignatureTransfer.SignatureTransferDetails memory detail)
     {
+        // resolve resolvedAmount based on the current time and to based on feeRecipient
         uint256 resolvedAmount = resolve(fee.startAmount, fee.endAmount, fee.startTime, fee.endTime);
-        // if the fee.recipient is not set, use the passed in feeRecipient
-        detail = ISignatureTransfer.SignatureTransferDetails({
-            to: fee.recipient == address(0) ? feeRecipient : fee.recipient,
-            requestedAmount: resolvedAmount
-        });
+        detail = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 }

@@ -83,8 +83,7 @@ contract FeeEscalatorLibTest is Test {
             startAmount: 1 ether,
             endAmount: 2 ether,
             startTime: 100,
-            endTime: 200,
-            recipient: address(0)
+            endTime: 200
         });
         ISignatureTransfer.TokenPermissions memory permission = fee.toTokenPermissions();
         assertEq(permission.token, token);
@@ -92,30 +91,14 @@ contract FeeEscalatorLibTest is Test {
         assertEq(permission.amount, 2 ether);
     }
 
-    function testToTransferDetailsWithSpecifiedRecipient() public {
+    function testToTransferDetails() public {
         address filler = makeAddr("filler");
         FeeEscalator memory fee = FeeEscalator({
             token: address(this),
             startAmount: 1 ether,
             endAmount: 1 ether,
             startTime: 0,
-            endTime: 0,
-            recipient: address(this)
-        });
-        ISignatureTransfer.SignatureTransferDetails memory details = fee.toTransferDetails(filler);
-        assertEq(details.to, address(this));
-        assertEq(details.requestedAmount, 1 ether);
-    }
-
-    function testToTransferDetailsWithNoRecipient() public {
-        address filler = makeAddr("filler");
-        FeeEscalator memory fee = FeeEscalator({
-            token: address(this),
-            startAmount: 1 ether,
-            endAmount: 1 ether,
-            startTime: 0,
-            endTime: 0,
-            recipient: address(0)
+            endTime: 0
         });
         ISignatureTransfer.SignatureTransferDetails memory details = fee.toTransferDetails(filler);
         assertEq(details.to, filler);
