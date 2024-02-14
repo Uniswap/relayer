@@ -315,18 +315,15 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     }
 
     function testPermitAndExecute() public {
-        ERC20 tokenIn = USDC;
-        ERC20 tokenOut = DAI;
-        ERC20 gasToken = USDC;
-
-        bytes memory permitData = generatePermitData(address(PERMIT2), USDC, swapper2PrivateKey);
+        (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            generatePermitData(address(PERMIT2), USDC, swapper2PrivateKey);
 
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
         // making a USDC -> DAI swap
-        Input memory input = InputBuilder.init(tokenIn).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
+        Input memory input = InputBuilder.init(USDC).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
-            FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
+            FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
 
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
 
@@ -341,35 +338,34 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         // build multicall data
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(reactor.permit.selector, address(USDC), permitData);
+        data[0] =
+            abi.encodeWithSelector(reactor.permit.selector, address(USDC), swapper2, spender, amount, deadline, v, r, s);
         data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder, filler);
 
         // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
         // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
-        _snapshotClassicSwapCall(tokenIn, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
+        _snapshotClassicSwapCall(USDC, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
 
-        _checkpointBalances(swapper2, filler, tokenIn, tokenOut, USDC);
+        _checkpointBalances(swapper2, filler, USDC, DAI, USDC);
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
         reactor.multicall(data);
         snapEnd();
 
-        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
-        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
-        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertEq(USDC.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
+        assertEq(DAI.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
+        assertEq(DAI.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         // swapper must have spent 100 USDC for the swap and 10 USDC for gas
         assertEq(
-            tokenIn.balanceOf(swapper2),
-            swapperInputBalanceStart - 100 * USDC_ONE - 10 * USDC_ONE,
-            "Swapper input tokens"
+            USDC.balanceOf(swapper2), swapperInputBalanceStart - 100 * USDC_ONE - 10 * USDC_ONE, "Swapper input tokens"
         );
         assertGe(
-            tokenOut.balanceOf(swapper2),
+            DAI.balanceOf(swapper2),
             swapperOutputBalanceStart + 95 * ONE, // amountOutMin
             "Swapper did not receive enough output"
         );
-        assertEq(tokenIn.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
+        assertEq(USDC.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
     }
 
     // Testing a basic relay order where the swap's output is native ETH

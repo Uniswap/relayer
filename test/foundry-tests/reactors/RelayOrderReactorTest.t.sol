@@ -19,6 +19,7 @@ import {InputBuilder} from "../util/InputBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {ONE} from "../util/Constants.sol";
+import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
@@ -35,6 +36,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     uint256 fillerPrivateKey;
     address filler;
     address constant MOCK_UNIVERSAL_ROUTER = address(0);
+    address mockUniversalRouter;
 
     event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
     event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -51,8 +53,9 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         filler = vm.addr(fillerPrivateKey);
 
         permit2 = IPermit2(deployPermit2());
+        mockUniversalRouter = address(new MockUniversalRouter());
 
-        reactor = new RelayOrderReactor(permit2, MOCK_UNIVERSAL_ROUTER);
+        reactor = new RelayOrderReactor(permit2, mockUniversalRouter);
 
         // swapper approves permit2 to transfer tokens
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
@@ -175,6 +178,38 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         assertEq(tokenIn.balanceOf(address(this)), ONE * 2);
     }
 
+    function test_multicall_permitAndExecute_succeeds() public {
+        MockERC20 token = new MockERC20("Mock", "M", 18);
+        token.mint(address(swapper), ONE * 2);
+        (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            generatePermitData(address(permit2), token, swapperPrivateKey);
+
+        RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeWithSelector(
+            IRelayOrderReactor.permit.selector, token, swapper, spender, amount, deadline, v, r, s
+        );
+        calls[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder, address(this));
+        reactor.multicall(calls);
+
+        assertEq(token.allowance(swapper, address(permit2)), type(uint256).max);
+        assertEq(token.balanceOf(address(this)), ONE);
+    }
+
+    function test_permit_succeeds() public {
+        MockERC20 token = new MockERC20("Mock", "M", 18);
+        assertEq(token.allowance(swapper, address(permit2)), 0);
+        (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            generatePermitData(address(permit2), token, swapperPrivateKey);
+        snapStart("RelayOrderReactor-permit");
+        reactor.permit(token, swapper, spender, amount, deadline, v, r, s);
+        snapEnd();
+        assertEq(tokenIn.allowance(swapper, address(permit2)), type(uint256).max);
+    }
+
     function test_execute_reverts_InvalidReactor() public {
         address badReactor = address(0xbeef);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, badReactor, swapper);
@@ -261,5 +296,28 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
         reactor.execute(signedOrder, filler);
+    }
+
+    function test_execute_reverts_universalRouter() public {
+        tokenIn.mint(address(swapper), ONE * 2);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.actions = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(MockUniversalRouter.UniversalRouterError.selector);
+        reactor.execute(signedOrder, address(this));
+    }
+
+    function test_multicall_reverts_universalRouter() public {
+        tokenIn.mint(address(swapper), ONE * 2);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.actions = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder, address(this));
+        vm.expectRevert(MockUniversalRouter.UniversalRouterError.selector);
+        reactor.multicall(calls);
     }
 }
