@@ -7,6 +7,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {InputBuilder} from "./InputBuilder.sol";
 import {OrderInfoBuilder} from "./OrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "./FeeEscalatorBuilder.sol";
+import {MockUniversalRouter} from "./mock/MockUniversalRouter.sol";
 
 library RelayOrderBuilder {
     using OrderInfoBuilder for OrderInfo;
@@ -16,7 +17,12 @@ library RelayOrderBuilder {
         pure
         returns (RelayOrder memory)
     {
-        return RelayOrder({info: info, input: input, fee: fee, actions: bytes("")});
+        return RelayOrder({
+            info: info,
+            input: input,
+            fee: fee,
+            actions: abi.encodeWithSelector(MockUniversalRouter.success.selector)
+        });
     }
 
     function withActions(RelayOrder memory order, bytes memory _actions) internal pure returns (RelayOrder memory) {
@@ -34,7 +40,7 @@ library RelayOrderBuilder {
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
-            actions: bytes("")
+            actions: abi.encodeWithSelector(MockUniversalRouter.success.selector)
         });
     }
 }

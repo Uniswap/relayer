@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 contract MockUniversalRouter {
     error UniversalRouterError();
 
+    function success() public {}
+
     fallback() external {
         revert UniversalRouterError();
     }
