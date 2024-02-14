@@ -16,7 +16,7 @@ library RelayOrderLib {
         abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
     );
 
-    /// @dev token addresses and maxAmounts are signed in the token permissions of the permit information.
+    /// @dev Token addresses and maxAmounts are signed in the token permissions of the permit information.
     bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
         "RelayOrder(",
         "address reactor,",
@@ -31,7 +31,7 @@ library RelayOrderLib {
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
 
-    /// @notice validate a relay order
+    /// @notice Validate a relay order
     function validate(RelayOrder memory order) internal view {
         if (order.info.deadline < order.fee.endTime) {
             revert ReactorErrors.DeadlineBeforeEndTime();
@@ -42,7 +42,7 @@ library RelayOrderLib {
         }
     }
 
-    /// @notice get the permissions necessary for the permit call
+    /// @notice Get the permissions necessary for the permit call
     function toTokenPermissions(RelayOrder memory order)
         internal
         pure
@@ -53,8 +53,8 @@ library RelayOrderLib {
         permissions[1] = order.fee.toTokenPermissions();
     }
 
-    /// @notice get the transfer details needed for the permit call
-    /// @param feeRecipient the address to receive any specified fee
+    /// @notice Get the transfer details needed for the permit call
+    /// @param feeRecipient The address to receive any specified fee
     function toTransferDetails(RelayOrder memory order, address feeRecipient)
         internal
         view
@@ -68,8 +68,8 @@ library RelayOrderLib {
         details[1] = order.fee.toTransferDetails(feeRecipient);
     }
 
-    /// @notice transfer all input tokens and the fee to their respective recipients
-    /// @dev resolves the fee amount on the curve specified in the order
+    /// @notice Transfer all input tokens and the fee to their respective recipients
+    /// @dev Resolves the fee amount on the curve specified in the order
     function transferInputTokens(
         RelayOrder memory order,
         bytes32 orderHash,
@@ -94,10 +94,10 @@ library RelayOrderLib {
         );
     }
 
-    /// @notice hash the given order
-    /// @param order the order to hash
-    /// @dev we only hash fields not included in the permit already (excluding token addresses and fee endAmount)
-    /// @return the eip-712 order hash
+    /// @notice hash The given order
+    /// @param order The order to hash
+    /// @dev We only hash fields not included in the permit already (excluding token addresses and fee endAmount)
+    /// @return The eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(

@@ -9,8 +9,8 @@ import {ReactorErrors} from "../base/ReactorErrors.sol";
 library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
 
-    /// @notice calculates an amount on a linear curve over time from startTime to endTime
-    /// @dev handles only increasing amounts from startAmount to endAmount
+    /// @notice Calculates an amount on a linear curve over time from startTime to endTime
+    /// @dev Handles only increasing amounts from startAmount to endAmount
     /// @param startAmount The amount of tokens at startTime
     /// @param endAmount The amount of tokens at endTime
     /// @param startTime The time to start escalating linearly
@@ -38,8 +38,8 @@ library FeeEscalatorLib {
     }
 
     /// @notice Transforms the fee data into a TokenPermissions struct needed for the permit call.
-    /// @dev the amount signed in the token permissions must be the endAmount of the fee
-    /// @param fee the order fee
+    /// @dev The amount signed in the token permissions must be the endAmount of the fee
+    /// @param fee The order fee
     function toTokenPermissions(FeeEscalator memory fee)
         internal
         pure
@@ -49,8 +49,8 @@ library FeeEscalatorLib {
     }
 
     /// @notice Transforms the fee data into a SignatureTransferDetails struct needed for the permit call.
-    /// @dev the recipient is the fee.recipient if set, otherwise the caller provided feeRecipient
-    /// @param fee the order fee
+    /// @dev The recipient is the fee.recipient if set, otherwise the caller provided feeRecipient
+    /// @param fee The order fee
     /// @param feeRecipient the address to receive any specified fee
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
         internal

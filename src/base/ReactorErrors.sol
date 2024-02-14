@@ -2,18 +2,18 @@
 pragma solidity ^0.8.0;
 
 interface ReactorErrors {
-    /// @notice thrown when an order's deadline is before its end time
+    /// @notice Thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
 
-    /// @notice thrown when an order's end time is before its start time
+    /// @notice Thrown when an order's end time is before its start time
     error EndTimeBeforeStartTime();
 
-    /// @notice thrown if the escalation direction is incorrect
+    /// @notice Thrown if the escalation direction is incorrect
     error InvalidAmounts();
 
-    /// @notice thrown when the order targets a different reactor
+    /// @notice Thrown when the order targets a different reactor
     error InvalidReactor();
 
-    /// @notice thrown if the order has expired
+    /// @notice Thrown if the order has expired
     error DeadlinePassed();
 }

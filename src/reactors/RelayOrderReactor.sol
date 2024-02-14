@@ -18,7 +18,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
 
-    /// @notice permit2 address used for token transfers and signature verification
+    /// @notice Permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
     /// @notice Actions only execute on the universal router.
     address public immutable universalRouter;
