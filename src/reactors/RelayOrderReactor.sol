@@ -20,12 +20,11 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     using Permit2Lib for ERC20;
 
     /// @notice Permit2 address used for token transfers and signature verification
-    IPermit2 public immutable permit2;
+    IPermit2 public constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     /// @notice Actions only execute on the universal router.
     address public immutable universalRouter;
 
-    constructor(IPermit2 _permit2, address _universalRouter) {
-        permit2 = _permit2;
+    constructor(address _universalRouter) {
         universalRouter = _universalRouter;
     }
 
@@ -35,7 +34,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         order.validate();
 
         bytes32 orderHash = order.hash();
-        order.transferInputTokens(orderHash, permit2, feeRecipient, signedOrder.sig);
+        order.transferInputTokens(orderHash, PERMIT2, feeRecipient, signedOrder.sig);
 
         if (order.actions.length > 0) {
             (bool success, bytes memory result) = universalRouter.call(order.actions);
