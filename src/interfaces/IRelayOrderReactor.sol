@@ -7,7 +7,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @notice Interface for the relay order reactors
 interface IRelayOrderReactor is IMulticall {
-    /// @notice Validates a user's relayed request, sends tokens to relevant addresses, and executes the relayed actions.
+    /// @notice Validates a user's relayed request, sends tokens to relevant addresses, and executes the relayed universalRouterCalldata.
     /// @param signedOrder Contains the raw relay order and signature bytes.
     /// @param feeRecipient The address to send the user's fee input.
     /// @dev Batch execute is enabled by using multicall.

@@ -17,11 +17,15 @@ library RelayOrderBuilder {
         pure
         returns (RelayOrder memory)
     {
-        return RelayOrder({info: info, input: input, fee: fee, actions: bytes("")});
+        return RelayOrder({info: info, input: input, fee: fee, universalRouterCalldata: bytes("")});
     }
 
-    function withActions(RelayOrder memory order, bytes memory _actions) internal pure returns (RelayOrder memory) {
-        order.actions = _actions;
+    function withUniversalRouterCalldata(RelayOrder memory order, bytes memory _universalRouterCalldata)
+        internal
+        pure
+        returns (RelayOrder memory)
+    {
+        order.universalRouterCalldata = _universalRouterCalldata;
         return order;
     }
 
@@ -35,7 +39,7 @@ library RelayOrderBuilder {
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
-            actions: bytes("")
+            universalRouterCalldata: bytes("")
         });
     }
 }

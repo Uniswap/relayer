@@ -62,7 +62,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     }
 
     /// @dev Test of a simple execute
-    /// @dev this order has no actions and its fee increases from 0 ether to 1 ether
+    /// @dev this order has no universalRouterCalldata and its fee increases from 0 ether to 1 ether
     function test_execute_withDecay() public {
         tokenIn.mint(address(swapper), ONE * 100);
 
@@ -119,11 +119,11 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder1 =
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
 
-        bytes[] memory actions = new bytes[](2);
-        actions[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
-        actions[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, filler);
+        bytes[] memory universalRouterCalldata = new bytes[](2);
+        universalRouterCalldata[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
+        universalRouterCalldata[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, filler);
 
-        reactor.multicall(actions);
+        reactor.multicall(universalRouterCalldata);
 
         assertEq(tokenIn.balanceOf(address(filler)), ONE * 2);
     }
@@ -140,11 +140,12 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder1 =
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
 
-        bytes[] memory actions = new bytes[](2);
-        actions[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
-        actions[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, address(this));
+        bytes[] memory universalRouterCalldata = new bytes[](2);
+        universalRouterCalldata[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder0, filler);
+        universalRouterCalldata[1] =
+            abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder1, address(this));
 
-        reactor.multicall(actions);
+        reactor.multicall(universalRouterCalldata);
 
         assertEq(tokenIn.balanceOf(address(filler)), ONE);
         assertEq(tokenIn.balanceOf(address(this)), ONE);
@@ -300,7 +301,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_execute_reverts_universalRouter() public {
         tokenIn.mint(address(swapper), ONE * 2);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
-        order.actions = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
+        order.universalRouterCalldata = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
@@ -311,7 +312,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_multicall_reverts_universalRouter() public {
         tokenIn.mint(address(swapper), ONE * 2);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
-        order.actions = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
+        order.universalRouterCalldata = abi.encodeWithSelector(bytes4(keccak256("RevertingSelector")));
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         bytes[] memory calls = new bytes[](1);
@@ -323,7 +324,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_excecute_succeeds_universalRouter() public {
         tokenIn.mint(address(swapper), ONE * 2);
         RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
-        order.actions = abi.encodeWithSelector(MockUniversalRouter.success.selector);
+        order.universalRouterCalldata = abi.encodeWithSelector(MockUniversalRouter.success.selector);
         order.input = order.input.withRecipient(address(this));
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));

@@ -26,7 +26,7 @@ library RelayOrderLib {
         "uint256 feeStartTime,",
         "uint256 feeEndTime,",
         "address feeRecipient,",
-        "bytes actions)"
+        "bytes universalRouterCalldata)"
     );
 
     bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
@@ -109,7 +109,7 @@ library RelayOrderLib {
                 order.fee.startTime,
                 order.fee.endTime,
                 order.fee.recipient,
-                keccak256(order.actions)
+                keccak256(order.universalRouterCalldata)
             )
         );
     }
