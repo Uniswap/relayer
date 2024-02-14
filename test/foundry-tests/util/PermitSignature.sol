@@ -77,7 +77,7 @@ contract PermitSignature is Test {
     /// @notice Generate permit data for a token to be submitted to permit on the reactor
     function generatePermitData(address permit2, ERC20 token, uint256 signerPrivateKey)
         internal
-        returns (bytes memory permitData)
+        returns (address, uint256, uint256, uint8, bytes32, bytes32)
     {
         address signer = vm.addr(signerPrivateKey);
         bytes32 digest = keccak256(
@@ -100,7 +100,7 @@ contract PermitSignature is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
         assertEq(ecrecover(digest, v, r, s), signer);
 
-        permitData = abi.encode(signer, permit2, type(uint256).max, type(uint256).max - 1, v, r, s);
+        return (permit2, type(uint256).max, type(uint256).max - 1, v, r, s);
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {

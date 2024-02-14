@@ -178,14 +178,17 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_multicall_permitAndExecute_succeeds() public {
         MockERC20 token = new MockERC20("Mock", "M", 18);
         token.mint(address(swapper), ONE * 2);
-        bytes memory sig = generatePermitData(address(permit2), token, swapperPrivateKey);
+        (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            generatePermitData(address(permit2), token, swapperPrivateKey);
 
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         bytes[] memory calls = new bytes[](2);
-        calls[0] = abi.encodeWithSelector(IRelayOrderReactor.permit.selector, token, sig);
+        calls[0] = abi.encodeWithSelector(
+            IRelayOrderReactor.permit.selector, token, swapper, spender, amount, deadline, v, r, s
+        );
         calls[1] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder, address(this));
         reactor.multicall(calls);
 
@@ -196,9 +199,10 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     function test_permit_succeeds() public {
         MockERC20 token = new MockERC20("Mock", "M", 18);
         assertEq(token.allowance(swapper, address(permit2)), 0);
-        bytes memory sig = generatePermitData(address(permit2), token, swapperPrivateKey);
+        (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
+            generatePermitData(address(permit2), token, swapperPrivateKey);
         snapStart("RelayOrderReactor-permit");
-        reactor.permit(token, sig);
+        reactor.permit(token, swapper, spender, amount, deadline, v, r, s);
         snapEnd();
         assertEq(tokenIn.allowance(swapper, address(permit2)), type(uint256).max);
     }

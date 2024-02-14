@@ -18,6 +18,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
+    using Permit2Lib for ERC20;
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -48,9 +49,16 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     }
 
     /// @inheritdoc IRelayOrderReactor
-    function permit(ERC20 token, bytes calldata data) external {
-        (address _owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
-            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        Permit2Lib.permit2(token, _owner, spender, value, deadline, v, r, s);
+    function permit(
+        ERC20 token,
+        address owner,
+        address spender,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        token.permit2(owner, spender, amount, deadline, v, r, s);
     }
 }
