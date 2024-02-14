@@ -23,6 +23,7 @@ import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
+import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
     using stdJson for string;
@@ -475,6 +476,73 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             "Swapper did not receive enough output"
         );
         assertEq(tokenOut.balanceOf((feeRecipient)), 10 * USDC_ONE, "fee recipient balance");
+    }
+
+    function test_execute_noActions_noInputs_noFee_succeeds() public {
+        FeeEscalator memory fee;
+        Input memory input;
+        RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
+        order.input = input;
+        order.fee = fee;
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit ReactorEvents.Fill(order.hash(), address(this), swapper, order.info.nonce);
+        reactor.execute(signedOrder, address(this));
+        assertEq(order.actions.length, 0);
+    }
+
+    function test_execute_noActions_noInputs_withFee_succeeds() public {
+        // Essentially a relayed transfer.
+        Input memory input;
+        RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
+        order.input = input;
+        order.fee = order.fee.withStartAmount(USDC_ONE).withEndAmount(USDC_ONE);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+
+        vm.prank(address(filler));
+        reactor.execute(signedOrder, address(filler));
+        assertEq(order.actions.length, 0);
+        assertEq(USDC.balanceOf(address(filler)), USDC_ONE);
+    }
+
+    function test_execute_noActions_withInputs_withFee_succeeds() public {
+        // Even if no actions are encoded, a transfer of tokens from an Input and a Fee can still happen.
+        RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
+        order.input = order.input.withRecipient(address(this)).withAmount(USDC_ONE);
+        order.fee = order.fee.withStartAmount(USDC_ONE).withEndAmount(USDC_ONE);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+
+        vm.prank(address(filler));
+        reactor.execute(signedOrder, address(filler));
+        assertEq(order.actions.length, 0);
+        assertEq(USDC.balanceOf(address(filler)), USDC_ONE);
+        assertEq(USDC.balanceOf(address(this)), USDC_ONE);
+    }
+
+    function test_execute_reverts_withUniversalRouterLengthMismatchError() public {
+        Input memory input;
+        FeeEscalator memory fee;
+        bytes memory commands = bytes("");
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode("randombytes");
+        bytes memory actions = abi.encodeWithSelector(bytes4(keccak256("execute(bytes,bytes[])")), commands, inputs);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
+        order.input = input;
+        order.fee = fee;
+        order.actions = actions;
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+        vm.expectRevert(bytes4(keccak256("LengthMismatch()")));
+        reactor.execute(signedOrder, address(this));
     }
 
     function _checkpointBalances(address _swapper, address _filler, ERC20 tokenIn, ERC20 tokenOut, ERC20 gasInput)

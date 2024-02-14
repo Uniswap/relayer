@@ -17,12 +17,7 @@ library RelayOrderBuilder {
         pure
         returns (RelayOrder memory)
     {
-        return RelayOrder({
-            info: info,
-            input: input,
-            fee: fee,
-            actions: abi.encodeWithSelector(MockUniversalRouter.success.selector)
-        });
+        return RelayOrder({info: info, input: input, fee: fee, actions: bytes("")});
     }
 
     function withActions(RelayOrder memory order, bytes memory _actions) internal pure returns (RelayOrder memory) {
@@ -40,7 +35,7 @@ library RelayOrderBuilder {
             info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
             input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
-            actions: abi.encodeWithSelector(MockUniversalRouter.success.selector)
+            actions: bytes("")
         });
     }
 }

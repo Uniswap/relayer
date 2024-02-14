@@ -35,7 +35,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address swapper;
     uint256 fillerPrivateKey;
     address filler;
-    address constant MOCK_UNIVERSAL_ROUTER = address(0);
     address mockUniversalRouter;
 
     event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
@@ -319,5 +318,18 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         calls[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder, address(this));
         vm.expectRevert(MockUniversalRouter.UniversalRouterError.selector);
         reactor.multicall(calls);
+    }
+
+    function test_excecute_succeeds_universalRouter() public {
+        tokenIn.mint(address(swapper), ONE * 2);
+        RelayOrder memory order = RelayOrderBuilder.initDefault(tokenIn, address(reactor), swapper);
+        order.actions = abi.encodeWithSelector(MockUniversalRouter.success.selector);
+        order.input = order.input.withRecipient(address(this));
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeWithSelector(IRelayOrderReactor.execute.selector, signedOrder, address(this));
+        reactor.multicall(calls);
+        assertEq(tokenIn.balanceOf(address(this)), ONE * 2);
     }
 }
