@@ -89,7 +89,7 @@ contract PermitSignature is Test {
                         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
                         signer,
                         permit2,
-                        type(uint256).max - 1, // infinite approval
+                        type(uint256).max, // infinite approval
                         token.nonces(signer),
                         type(uint256).max - 1 // infinite deadline
                     )
@@ -100,7 +100,7 @@ contract PermitSignature is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
         assertEq(ecrecover(digest, v, r, s), signer);
 
-        permitData = abi.encode(signer, permit2, type(uint256).max - 1, type(uint256).max - 1, v, r, s);
+        permitData = abi.encode(signer, permit2, type(uint256).max, type(uint256).max - 1, v, r, s);
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
