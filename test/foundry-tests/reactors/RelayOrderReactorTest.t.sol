@@ -54,11 +54,15 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         permit2 = IPermit2(deployPermit2());
         mockUniversalRouter = address(new MockUniversalRouter());
 
-        reactor = new RelayOrderReactor(permit2, mockUniversalRouter);
+        reactor = new RelayOrderReactor(mockUniversalRouter);
 
         // swapper approves permit2 to transfer tokens
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         assertEq(tokenIn.allowance(swapper, address(permit2)), type(uint256).max);
+    }
+
+    function test_permit2_address_correctness() public {
+        assertEq(address(reactor.PERMIT2()), 0x000000000022D473030F116dDEE9F6B43aC78BA3);
     }
 
     /// @dev Test of a simple execute
