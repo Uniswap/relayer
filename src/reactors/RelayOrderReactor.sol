@@ -36,8 +36,8 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         bytes32 orderHash = order.hash();
         order.transferInputTokens(orderHash, PERMIT2, feeRecipient, signedOrder.sig);
 
-        if (order.actions.length > 0) {
-            (bool success, bytes memory result) = universalRouter.call(order.actions);
+        if (order.universalRouterCalldata.length > 0) {
+            (bool success, bytes memory result) = universalRouter.call(order.universalRouterCalldata);
             if (!success) {
                 // bubble up all errors, including custom errors which are encoded like functions
                 assembly {
