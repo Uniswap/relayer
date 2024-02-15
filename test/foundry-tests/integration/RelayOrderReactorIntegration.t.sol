@@ -75,7 +75,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         json = vm.readFile(string.concat(root, "/test/foundry-tests/interop.json"));
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
+        deployCodeTo("RelayOrderReactor.sol", abi.encode(UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
 
         // Swapper max approves permit post for all input tokens
@@ -142,7 +142,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -192,7 +193,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -245,7 +247,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -288,7 +291,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -332,7 +336,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(0);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
@@ -381,7 +386,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
             block.timestamp + 100
         ).withNonce(0);
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -426,7 +432,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(0);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -453,7 +460,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(1);
 
-        RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee).withActions(methodParameters.data);
+        RelayOrder memory order =
+            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -489,7 +497,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         vm.expectEmit(true, true, true, true, address(reactor));
         emit ReactorEvents.Fill(order.hash(), address(this), swapper, order.info.nonce);
         reactor.execute(signedOrder, address(this));
-        assertEq(order.actions.length, 0);
+        assertEq(order.universalRouterCalldata.length, 0);
     }
 
     function test_execute_noActions_noInputs_withFee_succeeds() public {
@@ -506,12 +514,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));
-        assertEq(order.actions.length, 0);
+        assertEq(order.universalRouterCalldata.length, 0);
         assertEq(USDC.balanceOf(address(filler)), USDC_ONE);
     }
 
     function test_execute_noActions_withInputs_withFee_succeeds() public {
-        // Even if no actions are encoded, a transfer of tokens from an Input and a Fee can still happen.
+        // Even if no universalRouterCalldata are encoded, a transfer of tokens from an Input and a Fee can still happen.
         RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
         order.input = order.input.withRecipient(address(this)).withAmount(USDC_ONE);
         order.fee = order.fee.withStartAmount(USDC_ONE).withEndAmount(USDC_ONE);
@@ -523,7 +531,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));
-        assertEq(order.actions.length, 0);
+        assertEq(order.universalRouterCalldata.length, 0);
         assertEq(USDC.balanceOf(address(filler)), USDC_ONE);
         assertEq(USDC.balanceOf(address(this)), USDC_ONE);
     }
@@ -534,11 +542,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         bytes memory commands = bytes("");
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode("randombytes");
-        bytes memory actions = abi.encodeWithSelector(bytes4(keccak256("execute(bytes,bytes[])")), commands, inputs);
+        bytes memory universalRouterCalldata =
+            abi.encodeWithSelector(bytes4(keccak256("execute(bytes,bytes[])")), commands, inputs);
         RelayOrder memory order = RelayOrderBuilder.initDefault(USDC, address(reactor), swapper);
         order.input = input;
         order.fee = fee;
-        order.actions = actions;
+        order.universalRouterCalldata = universalRouterCalldata;
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
         vm.expectRevert(bytes4(keccak256("LengthMismatch()")));
