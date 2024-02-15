@@ -13,6 +13,9 @@ interface IRelayOrderReactor is IMulticall {
     /// @dev Batch execute is enabled by using multicall.
     function execute(SignedOrder calldata signedOrder, address feeRecipient) external;
 
+    /// @notice Shortcut for execute which sets the feeRecipient as msg.sender.
+    function execute(SignedOrder calldata signedOrder) external;
+
     /// @notice Execute a signed 2612-style permit.
     /// @param token The token to permit.
     /// @param owner The signer of the permit.

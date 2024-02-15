@@ -346,7 +346,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         bytes[] memory data = new bytes[](2);
         data[0] =
             abi.encodeWithSelector(reactor.permit.selector, address(USDC), swapper2, spender, amount, deadline, v, r, s);
-        data[1] = abi.encodeWithSelector(reactor.execute.selector, signedOrder, filler);
+        data[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, filler);
 
         // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
         // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
