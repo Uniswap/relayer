@@ -147,8 +147,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
 
         bytes[] memory calls = new bytes[](2);
-        calls[0] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
-        calls[1] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, filler);
+        calls[0] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
+        calls[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, filler);
 
         reactor.multicall(calls);
 
@@ -168,9 +168,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(permit2), order1));
 
         bytes[] memory calls = new bytes[](2);
-        calls[0] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
-        calls[1] =
-             abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, address(this));
+        calls[0] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
+        calls[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, address(this));
 
         reactor.multicall(calls);
 
@@ -196,8 +195,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         bytes[] memory calls = new bytes[](2);
         // Even if we specify a different feeRecipient, the inputs are received in this contract.
-        calls[0] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
-        calls[1] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, filler);
+        calls[0] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder0, filler);
+        calls[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder1, filler);
 
         reactor.multicall(calls);
 
@@ -219,7 +218,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         calls[0] = abi.encodeWithSelector(
             IRelayOrderReactor.permit.selector, token, swapper, spender, amount, deadline, v, r, s
         );
-        calls[1] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
+        calls[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
         reactor.multicall(calls);
 
         assertEq(token.allowance(swapper, address(permit2)), type(uint256).max);
@@ -343,7 +342,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         bytes[] memory calls = new bytes[](1);
-        calls[0] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
+        calls[0] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
         vm.expectRevert(MockUniversalRouter.UniversalRouterError.selector);
         reactor.multicall(calls);
     }
@@ -356,7 +355,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         bytes[] memory calls = new bytes[](1);
-        calls[0] =  abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
+        calls[0] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, address(this));
         reactor.multicall(calls);
         assertEq(tokenIn.balanceOf(address(this)), ONE * 2);
     }
