@@ -5,10 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {FeeEscalatorLib} from "../../../src/lib/FeeEscalatorLib.sol";
+import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 contract FeeEscalatorLibTest is Test {
     using FeeEscalatorLib for FeeEscalator;
+    using FeeEscalatorBuilder for FeeEscalator;
 
     function testRelayFeeEscalationNoEscalation(uint256 amount, uint256 startTime, uint256 endTime) public {
         vm.assume(endTime >= startTime);
@@ -93,5 +96,65 @@ contract FeeEscalatorLibTest is Test {
         ISignatureTransfer.SignatureTransferDetails memory details = fee.toTransferDetails(filler);
         assertEq(details.to, filler);
         assertEq(details.requestedAmount, 1 ether);
+    }
+
+    // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
+    function test_FeeEscalatorTypestring_isCorrect() public {
+        bytes memory typestring =
+            "FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)";
+        assertEq(typestring, FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING);
+        assertEq(keccak256(typestring), FeeEscalatorLib.FEE_ESCALATOR_TYPEHASH);
+    }
+
+    function test_hash_isEqual() public {
+        address token = address(0);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token));
+
+        assertEq(fee0.hash(), fee1.hash());
+    }
+
+    function test_hash_isDifferentBy_token() public {
+        address token0 = address(0);
+        address token1 = address(1);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token0));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token1));
+        assertTrue(fee0.hash() != fee1.hash());
+    }
+
+    function test_hash_isDifferentBy_startAmount() public {
+        address token = address(0);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token));
+        fee0 = fee0.withStartAmount(0);
+        fee1 = fee1.withStartAmount(1);
+        assertTrue(fee0.hash() != fee1.hash());
+    }
+
+    function test_hash_isDifferentBy_endAmount() public {
+        address token = address(0);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token));
+        fee0 = fee0.withEndAmount(0);
+        fee1 = fee1.withEndAmount(1);
+        assertTrue(fee0.hash() != fee1.hash());
+    }
+
+    function test_hash_isDifferentBy_startTime() public {
+        address token = address(0);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token));
+        fee0 = fee0.withStartTime(0);
+        fee1 = fee1.withStartTime(1);
+        assertTrue(fee0.hash() != fee1.hash());
+    }
+
+    function test_hash_isDifferentBy_endTime() public {
+        address token = address(0);
+        FeeEscalator memory fee0 = FeeEscalatorBuilder.init(ERC20(token));
+        FeeEscalator memory fee1 = FeeEscalatorBuilder.init(ERC20(token));
+        fee0 = fee0.withEndTime(0);
+        fee1 = fee1.withEndTime(1);
+        assertTrue(fee0.hash() != fee1.hash());
     }
 }

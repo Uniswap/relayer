@@ -4,31 +4,45 @@ pragma solidity ^0.8.0;
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, FeeEscalator} from "../base/ReactorStructs.sol";
+import {RelayOrder, FeeEscalator, Input, OrderInfo} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
+import {InputLib} from "./InputLib.sol";
+import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
     using FeeEscalatorLib for FeeEscalator;
+    using OrderInfoLib for OrderInfo;
+    using InputLib for Input;
 
+    // EIP712 notes that nested structs should be ordered alphabetically:
+    // FeeEscalator, Input, OrderInfo, RelayOrder, TokenPermissions
     string internal constant PERMIT2_ORDER_TYPE = string(
-        abi.encodePacked("RelayOrder witness)", RELAY_ORDER_TYPESTRING, PermitHash._TOKEN_PERMISSIONS_TYPESTRING)
+        abi.encodePacked(
+            "RelayOrder witness)",
+            FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
+            InputLib.INPUT_TYPESTRING,
+            OrderInfoLib.ORDER_INFO_TYPESTRING,
+            TOPLEVEL_RELAY_ORDER_TYPESTRING,
+            PermitHash._TOKEN_PERMISSIONS_TYPESTRING
+        )
     );
 
-    /// @dev Token addresses and maxAmounts are signed in the token permissions of the permit information.
-    bytes internal constant RELAY_ORDER_TYPESTRING = abi.encodePacked(
-        "RelayOrder(",
-        "address reactor,",
-        "address swapper,",
-        "address inputRecipient,",
-        "uint256 feeStartAmount,",
-        "uint256 feeStartTime,",
-        "uint256 feeEndTime,",
-        "bytes universalRouterCalldata)"
+    bytes internal constant TOPLEVEL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
+        "RelayOrder(", "OrderInfo info,", "Input input,", "FeeEscalator fee,", "bytes universalRouterCalldata)"
     );
 
-    bytes32 internal constant RELAY_ORDER_TYPEHASH = keccak256(RELAY_ORDER_TYPESTRING);
+    // EIP712 notes that nested structs should be ordered alphabetically:
+    // FeeEscalator, Input, OrderInfo
+    bytes internal constant FULL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
+        TOPLEVEL_RELAY_ORDER_TYPESTRING,
+        FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
+        InputLib.INPUT_TYPESTRING,
+        OrderInfoLib.ORDER_INFO_TYPESTRING
+    );
+
+    bytes32 internal constant FULL_RELAY_ORDER_TYPEHASH = keccak256(FULL_RELAY_ORDER_TYPESTRING);
 
     /// @notice Validate a relay order
     function validate(RelayOrder memory order) internal view {
@@ -95,18 +109,14 @@ library RelayOrderLib {
 
     /// @notice hash The given order
     /// @param order The order to hash
-    /// @dev We only hash fields not included in the permit already (excluding token addresses and fee endAmount)
     /// @return The eip-712 order hash
     function hash(RelayOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                RELAY_ORDER_TYPEHASH,
-                order.info.reactor,
-                order.info.swapper,
-                order.input.recipient,
-                order.fee.startAmount,
-                order.fee.startTime,
-                order.fee.endTime,
+                FULL_RELAY_ORDER_TYPEHASH,
+                order.info.hash(),
+                order.input.hash(),
+                order.fee.hash(),
                 keccak256(order.universalRouterCalldata)
             )
         );
