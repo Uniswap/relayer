@@ -13,20 +13,33 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
+import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 
-contract RelayOrderLibTest is Test {
+contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using FeeEscalatorBuilder for FeeEscalator;
     using InputBuilder for Input;
 
     address swapper;
+    uint256 swapperPrivateKey;
     MockReactor reactor;
     MockERC20 token;
+    IPermit2 permit2;
+    uint256 ONE = 10 ** 18;
 
     function setUp() public {
-        swapper = makeAddr("swapper");
+        swapperPrivateKey = 0x1234;
+        swapper = vm.addr(swapperPrivateKey);
         reactor = new MockReactor();
         token = new MockERC20("Token", "TK", 18);
+        permit2 = IPermit2(deployPermit2());
+
+        token.forceApprove(swapper, address(permit2), type(uint256).max);
+        assertEq(token.allowance(swapper, address(permit2)), type(uint256).max);
+        token.mint(swapper, ONE * 2);
     }
 
     function test_validate_succeeds() public view {
@@ -83,9 +96,27 @@ contract RelayOrderLibTest is Test {
         assertEq(details[1].requestedAmount, order.fee.startAmount);
     }
 
-    function test_fuzz_toTransferDetails_noEscalation(uint256 startAmount, uint256 endAmount) public {
+    function test_fuzz_toTransferDetails_noEscalation_atBlockTimestamp(uint256 startAmount, uint256 endAmount) public {
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount);
+        if (startAmount > endAmount) {
+            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+        }
+        ISignatureTransfer.SignatureTransferDetails[] memory details =
+            RelayOrderLib.toTransferDetails(order, address(this));
+        assertEq(details.length, 2);
+        assertEq(details[0].to, address(0));
+        assertEq(details[0].requestedAmount, order.input.amount);
+        assertEq(details[1].to, address(this));
+        assertEq(details[1].requestedAmount, order.fee.endAmount);
+    }
+
+    function test_fuzz_toTransferDetails_noEscalation_beforeBlockTimestamp(uint256 startAmount, uint256 endAmount)
+        public
+    {
+        RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount).withStartTime(block.timestamp + 1)
+            .withEndTime(block.timestamp + 1);
         if (startAmount > endAmount) {
             vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
         }
@@ -98,20 +129,69 @@ contract RelayOrderLibTest is Test {
         assertEq(details[1].requestedAmount, order.fee.startAmount);
     }
 
-    function test_toTransferDetails_noEscalation_try() public {
-        uint256 startAmount = 0;
-        uint256 endAmount = 1;
+    function test_fuzz_toTransferDetails_noEscalation_afterBlockTimestamp(uint256 startAmount, uint256 endAmount)
+        public
+    {
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
-        order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount);
+        order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount).withStartTime(block.timestamp + 1)
+            .withEndTime(block.timestamp + 1);
         if (startAmount > endAmount) {
             vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
         }
+        vm.warp(block.timestamp + 1);
         ISignatureTransfer.SignatureTransferDetails[] memory details =
             RelayOrderLib.toTransferDetails(order, address(this));
         assertEq(details.length, 2);
         assertEq(details[0].to, address(0));
         assertEq(details[0].requestedAmount, order.input.amount);
         assertEq(details[1].to, address(this));
-        assertEq(details[1].requestedAmount, order.fee.startAmount);
+        assertEq(details[1].requestedAmount, order.fee.endAmount);
     }
+
+    function test_toTransferDetails_midPointEscalation() public {
+        uint256 startAmount = 20 ether;
+        uint256 endAmount = 30 ether;
+
+        RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order.fee = order.fee.withStartTime(100).withEndTime(200).withStartAmount(startAmount).withEndAmount(endAmount);
+        vm.warp(150);
+        ISignatureTransfer.SignatureTransferDetails[] memory details =
+            RelayOrderLib.toTransferDetails(order, address(this));
+
+        assertEq(details.length, 2);
+        assertEq(details[0].to, address(0));
+        assertEq(details[0].requestedAmount, order.input.amount);
+        assertEq(details[1].to, address(this));
+        assertEq(details[1].requestedAmount, 25 ether);
+    }
+
+    function test_transferInputTokens_noEscalation_toAddressThis() public {
+        RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order.input = order.input.withRecipient(address(this));
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        reactor.transferInputTokens(order, RelayOrderLib.hash(order), permit2, address(this), signedOrder.sig);
+
+        assertEq(token.balanceOf(address(this)), ONE * 2);
+    }
+
+    function test_hash_isTheSameForTheSameOrder() public {
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        assertEq(RelayOrderLib.hash(order0), RelayOrderLib.hash(order1));
+    }
+
+    function test_hash_isDifferentBySwapper() public {
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), address(0xbeef));
+        assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
+    }
+
+    // TODO: Fix order hash.
+    // function test_hash_isDifferentByEndAmount() public {
+    //     RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+    //     RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+    //     order1.fee = order1.fee.withEndAmount(ONE * 10);
+    //     assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
+    // }
 }
