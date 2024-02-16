@@ -108,7 +108,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
     /// Same input and fee token.
     /// Filler balance is nonzero of input token.
     /// P2 nonce is dirty.
-    /// Specifies fee recipient. TODO: use msg.sender when supported
+    /// No fee recipient specified.
     function test_execute_bestCase() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
@@ -141,7 +141,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-test_execute_bestCase");
-        reactor.execute(signedOrder, filler);
+        reactor.execute(signedOrder);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
