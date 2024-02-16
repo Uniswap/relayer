@@ -6,8 +6,20 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {FeeEscalator} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 
+/// @notice Handles the EIP712 defined typehash and hashing for FeeEscalator, and performs escalation calculations
 library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
+
+    bytes internal constant FEE_ESCALATOR_TYPESTRING = abi.encodePacked(
+        "FeeEscalator(",
+        "address token,",
+        "uint256 startAmount,",
+        "uint256 endAmount,",
+        "uint256 startTime,",
+        "uint256 endTime)"
+    );
+
+    bytes32 internal constant FEE_ESCALATOR_TYPEHASH = keccak256(FEE_ESCALATOR_TYPESTRING);
 
     /// @notice Calculates an amount on a linear curve over time from startTime to endTime
     /// @dev Handles only increasing amounts from startAmount to endAmount
@@ -60,5 +72,14 @@ library FeeEscalatorLib {
         // resolve resolvedAmount based on the current time and to based on feeRecipient
         uint256 resolvedAmount = resolve(fee.startAmount, fee.endAmount, fee.startTime, fee.endTime);
         detail = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
+    }
+
+    /// @notice Hashes the fee
+    /// @param fee The fee to hash
+    /// @return The hash of the fee
+    function hash(FeeEscalator memory fee) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(FEE_ESCALATOR_TYPEHASH, fee.token, fee.startAmount, fee.endAmount, fee.startTime, fee.endTime)
+        );
     }
 }
