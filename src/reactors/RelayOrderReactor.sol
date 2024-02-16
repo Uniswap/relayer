@@ -29,7 +29,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
     }
 
     /// @inheritdoc IRelayOrderReactor
-    function execute(SignedOrder calldata signedOrder, address feeRecipient) external {
+    function execute(SignedOrder calldata signedOrder, address feeRecipient) public {
         (RelayOrder memory order) = abi.decode(signedOrder.order, (RelayOrder));
         order.validate();
 
@@ -47,6 +47,11 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
         }
 
         emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
+    }
+
+    /// @inheritdoc IRelayOrderReactor
+    function execute(SignedOrder calldata signedOrder) public {
+        execute(signedOrder, msg.sender);
     }
 
     /// @inheritdoc IRelayOrderReactor
