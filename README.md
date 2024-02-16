@@ -9,7 +9,7 @@ This contract does _not_ inherit the standard `IReactor` interface in UniswapX a
 ## RelayOrder
 Swappers generate Relay Orders to be submitted onchain. These orders have one static input, one dynamic fee, and calldata encoded for the UniversalRouter.
 
-The Input in a RelayOrder is a static amount which is sent to a specific recipient signed by the swapper. For example, they would be sent to the UniversalRouter to perform a relayed swap.
+The Input in a RelayOrder is a static amount which is sent to a specific recipient signed by the swapper. For example, an Input could be sent to the UniversalRouter to perform a relayed swap.
 
 The fee specified in a RelayOrder is sent directly to `feeRecipient` and can optionally increase in value linearly over the lifetime of the order. The actual amount transferred will be resolved at the time of filling.
 
