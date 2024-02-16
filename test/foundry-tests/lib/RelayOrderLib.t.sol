@@ -175,23 +175,56 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
         assertEq(token.balanceOf(address(this)), ONE * 2);
     }
 
-    function test_hash_isTheSameForTheSameOrder() public {
+    // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
+    function test_Permit2WitnessStubTypestring_isCorrect() public {
+        bytes memory typestring =
+            "RelayOrder witness)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)RelayOrder(OrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)TokenPermissions(address token,uint256 amount)";
+        assertEq(string(typestring), RelayOrderLib.PERMIT2_ORDER_TYPE);
+    }
+
+    // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
+    function test_RelayOrderTypestring_isCorrect() public {
+        bytes memory typestring =
+            "RelayOrder(OrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)";
+        assertEq(typestring, RelayOrderLib.FULL_RELAY_ORDER_TYPESTRING);
+        assertEq(keccak256(typestring), RelayOrderLib.FULL_RELAY_ORDER_TYPEHASH);
+    }
+
+    function test_hash_isEqual() public {
         RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         assertEq(RelayOrderLib.hash(order0), RelayOrderLib.hash(order1));
     }
 
-    function test_hash_isDifferentBySwapper() public {
+    function test_hash_isDifferentByOrderInfo() public {
         RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
-        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), address(0xbeef));
+        order0.info = order0.info.withSwapper(address(0xfeed));
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order1.info = order1.info.withSwapper(address(0xbeef));
         assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
     }
 
-    // TODO: Fix order hash.
-    // function test_hash_isDifferentByEndAmount() public {
-    //     RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
-    //     RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
-    //     order1.fee = order1.fee.withEndAmount(ONE * 10);
-    //     assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
-    // }
+    function test_hash_isDifferentByInput() public {
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order0.input = order0.input.withToken(address(0x123));
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order1.input = order1.input.withToken(address(0x321));
+        assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
+    }
+
+    function test_hash_isDifferentByFeeEscalator() public {
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order0.fee = order0.fee.withEndAmount(ONE * 10);
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order1.fee = order1.fee.withEndAmount(ONE * 100);
+        assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
+    }
+
+    function test_hash_isDifferentByCalldata() public {
+        RelayOrder memory order0 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order0.universalRouterCalldata = bytes("123");
+        RelayOrder memory order1 = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
+        order1.universalRouterCalldata = bytes("0123");
+        assertTrue(RelayOrderLib.hash(order0) != RelayOrderLib.hash(order1));
+    }
 }
