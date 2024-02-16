@@ -16,7 +16,10 @@ library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
     using InputLib for Input;
 
-    // EIP712 notes that nested structs should be ordered alphabetically:
+    // EIP712 notes that nested structs should be ordered alphabetically.
+    // With our added RelayOrder witness, the top level type becomes
+    // "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,RelayOrder witness)"
+    // Meaning we order the nested structs as follows:
     // FeeEscalator, Input, OrderInfo, RelayOrder, TokenPermissions
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked(
@@ -24,7 +27,7 @@ library RelayOrderLib {
             FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
             InputLib.INPUT_TYPESTRING,
             OrderInfoLib.ORDER_INFO_TYPESTRING,
-            TOPLEVEL_RELAY_ORDER_TYPESTRING,
+            RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
             PermitHash._TOKEN_PERMISSIONS_TYPESTRING
         )
     );
@@ -36,7 +39,7 @@ library RelayOrderLib {
     // EIP712 notes that nested structs should be ordered alphabetically:
     // FeeEscalator, Input, OrderInfo
     bytes internal constant FULL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
-        TOPLEVEL_RELAY_ORDER_TYPESTRING,
+        RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
         FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
         InputLib.INPUT_TYPESTRING,
         OrderInfoLib.ORDER_INFO_TYPESTRING

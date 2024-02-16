@@ -21,4 +21,9 @@ library InputBuilder {
         input.amount = _amount;
         return input;
     }
+
+    function withToken(Input memory input, address _token) internal pure returns (Input memory) {
+        input.token = _token;
+        return input;
+    }
 }
