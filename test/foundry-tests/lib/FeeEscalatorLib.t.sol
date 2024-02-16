@@ -98,6 +98,14 @@ contract FeeEscalatorLibTest is Test {
         assertEq(details.requestedAmount, 1 ether);
     }
 
+    function test_fuzz_resolve_startTimeEqualsEndTime(uint256 startAmount, uint256 endAmount) public {
+        if (startAmount > endAmount) {
+            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+        }
+        uint256 resolvedAmount = FeeEscalatorLib.resolve(startAmount, endAmount, block.timestamp, block.timestamp);
+        assertEq(resolvedAmount, endAmount);
+    }
+
     // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
     function test_FeeEscalatorTypestring_isCorrect() public {
         bytes memory typestring =
