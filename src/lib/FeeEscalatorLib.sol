@@ -6,6 +6,7 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {FeeEscalator} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 
+/// @notice Handles the EIP712 defined typehash and hashing for FeeEscalator, and performs escalation calculations
 library FeeEscalatorLib {
     using FixedPointMathLib for uint256;
 
@@ -73,6 +74,9 @@ library FeeEscalatorLib {
         detail = ISignatureTransfer.SignatureTransferDetails({to: feeRecipient, requestedAmount: resolvedAmount});
     }
 
+    /// @notice Hashes the fee
+    /// @param fee The fee to hash
+    /// @return The hash of the fee
     function hash(FeeEscalator memory fee) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(FEE_ESCALATOR_TYPEHASH, fee.token, fee.startAmount, fee.endAmount, fee.startTime, fee.endTime)
