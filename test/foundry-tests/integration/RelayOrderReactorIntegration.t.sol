@@ -486,7 +486,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
         _snapshotClassicSwapCall(tokenIn, 105 * ONE, methodParameters, "test_execute_exactOutput");
-        
+
         snapStart("RelayOrderReactorIntegrationTest-test_execute_exactOutput");
         reactor.execute(signedOrder);
         snapEnd();
