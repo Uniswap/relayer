@@ -42,6 +42,7 @@ contract DeployRelayOrderReactorTest is Test, PermitSignature, DeployPermit2 {
         RelayOrderReactor reactor = deployer.run(mockUniversalRouter);
 
         assertEq(address(reactor.PERMIT2()), 0x000000000022D473030F116dDEE9F6B43aC78BA3);
+        assertEq(reactor.universalRouter(), mockUniversalRouter);
         quoteTest(reactor);
     }
 
