@@ -4,7 +4,16 @@ Contracts that allow for the relaying of transactions to the UniversalRouter in 
 ## RelayOrderReactor
 The RelayOrderReactor is responsible for validating RelayOrders, transferring input tokens and making the requested onchain call to the Universal Router. There is no additional verification performed after an order is filled, so it is crucial to encode any desired checks for balance or ownership into the calldata within the order.
 
-This contract does _not_ inherit the standard `IReactor` interface in UniswapX as the contract does not perform a callback to a filler. Fillers can execute orders by calling `execute(SignedOrder calldata order, address feeRecipient)` directly, passing in an order and the address which the order's fee should be sent to. For convenience, `execute(SignedOrder calldata order)` can also be called without the feeRecipient argument to direct all fees to the caller. Batch executes and permit + execute are enabled via built in multicall.
+This contract does _not_ inherit the standard `IReactor` interface in UniswapX as the contract does not perform a callback to a filler. The following functions are available for fillers to call:
+
+- `execute(SignedOrder calldata order, address feeRecipient)`
+- `execute(SignedOrder calldata order)` 
+- `permit(ERC20 token, address owner, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`
+- `multicall(bytes[] calldata data)`
+
+Execute must be called with an order and its signature. Providing a feeRecipient argument is optional and if omitted, fees will be sent to the caller.
+
+With multicall any combination of the calls above can be batched allowing callers to fill multiple orders in a single call, or actions like permit + execute.
 
 ## RelayOrder
 Swappers generate Relay Orders to be submitted onchain. These orders have one static input, one dynamic fee, and calldata encoded for the UniversalRouter.
