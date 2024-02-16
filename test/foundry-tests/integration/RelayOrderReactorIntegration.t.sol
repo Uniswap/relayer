@@ -137,10 +137,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteSameToken");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "test_execute_bestCase");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteSameToken");
+        snapStart("RelayOrderReactorIntegrationTest-test_execute_bestCase");
         reactor.execute(signedOrder, filler);
         snapEnd();
 
@@ -195,10 +195,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteAverageCase");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "test_execute_AverageCase");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteAverageCase");
+        snapStart("RelayOrderReactorIntegrationTest-test_execute_AverageCase");
         reactor.execute(signedOrder, filler);
         snapEnd();
 
@@ -243,11 +243,11 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteWorstCase");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "test_execute_worstCase");
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteWorstCase");
+        snapStart("RelayOrderReactorIntegrationTest-test_execute_worstCase");
         reactor.execute(signedOrder, filler);
         snapEnd();
 
@@ -306,12 +306,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
         // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
-        _snapshotClassicSwapCall(USDC, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
+        _snapshotClassicSwapCall(USDC, 100 * USDC_ONE, methodParameters, "test_multicall_permitAndExecute");
 
         _checkpointBalances(swapper2, filler, USDC, DAI, USDC);
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
+        snapStart("RelayOrderReactorIntegrationTest-test_multicall_permitAndExecute");
         reactor.multicall(data);
         snapEnd();
 
@@ -361,10 +361,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         routerOutputBalanceStart = UNIVERSAL_ROUTER.balance;
         fillerGasInputBalanceStart = USDC.balanceOf(filler);
 
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteWithNativeAsOutput");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "test_executeWithNativeOutput");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteWithNativeAsOutput");
+        snapStart("RelayOrderReactorIntegrationTest-test_executeWithNativeOutput");
         reactor.execute(signedOrder, filler);
         snapEnd();
 
@@ -437,10 +437,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteDifferentRecipient");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "test_execute_differentFeeRecipient");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecuteDifferentRecipient");
+        snapStart("RelayOrderReactorIntegrationTest-test_execute_differentFeeRecipient");
         reactor.execute(signedOrder, feeRecipient);
         snapEnd();
 
