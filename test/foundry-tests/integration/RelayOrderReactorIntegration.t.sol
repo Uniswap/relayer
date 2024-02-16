@@ -102,77 +102,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(allowance, 0, "reactor must not have approval for tokens");
     }
 
-    /// @dev Snapshot the gas required for an encoded call
-    /// - must be before the reactor execution since pool state will have changed
-    /// - since our generated calldata assumes that the router has custody of the tokens, we must transfer them here
-    function _snapshotClassicSwapCall(
-        ERC20 inputToken,
-        uint256 inputAmount,
-        MethodParameters memory methodParameters,
-        string memory testName
-    ) internal {
-        uint256 snapshot = vm.snapshot();
-
-        vm.startPrank(swapper);
-
-        snapStart(string.concat("RelayOrderReactorIntegrationTest-", testName, "-ClassicSwap"));
-        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
-        (bool success,) = UNIVERSAL_ROUTER.call(methodParameters.data);
-        snapEnd();
-
-        require(success, "call failed");
-        vm.stopPrank();
-
-        vm.revertTo(snapshot);
-    }
-
-    function testExecute() public {
-        ERC20 tokenIn = DAI;
-        ERC20 tokenOut = USDC;
-        ERC20 gasToken = USDC;
-
-        Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
-        FeeEscalator memory fee =
-            FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
-
-        uint256 amountOutMin = 95 * USDC_ONE;
-        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
-
-        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
-            block.timestamp + 100
-        ).withNonce(1);
-
-        RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
-
-        SignedOrder memory signedOrder =
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
-
-        _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
-
-        vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecute");
-        reactor.execute(signedOrder, filler);
-        snapEnd();
-
-        assertEq(tokenIn.balanceOf(UNIVERSAL_ROUTER), routerInputBalanceStart, "No leftover input in router");
-        assertEq(tokenOut.balanceOf(UNIVERSAL_ROUTER), routerOutputBalanceStart, "No leftover output in reactor");
-        assertEq(tokenOut.balanceOf(address(reactor)), 0, "No leftover output in reactor");
-        assertEq(tokenIn.balanceOf(swapper), swapperInputBalanceStart - 100 * ONE, "Swapper input tokens");
-        assertGe(
-            tokenOut.balanceOf(swapper),
-            swapperOutputBalanceStart + amountOutMin - 10 * USDC_ONE,
-            "Swapper did not receive enough output"
-        );
-        assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
-    }
-
-    // Testing the best case for gas benchmarking purposes
-    // - input tokens are the same
-    // - dirty write for P2 nonce
-    // - filler has dust of input token
-    function testExecuteSameToken() public {
+    /// @notice Tests the "best case" execute:
+    /// swap: DAI -> USDC
+    /// fee: DAI
+    /// Same input and fee token.
+    /// Filler balance is nonzero of input token.
+    /// P2 nonce is dirty.
+    /// Specifies fee recipient. TODO: use msg.sender when supported
+    function test_execute_bestCase() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
         ERC20 gasToken = DAI;
@@ -219,10 +156,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(DAI.balanceOf((filler)), fillerGasInputBalanceStart + 10 * ONE, "filler balance");
     }
 
-    // Testing the average case for gas benchmarking purposes
-    // - dirty write for P2 nonce
-    // - filler has dust of input token
-    function testExecuteAverageCase() public {
+    /// @notice Tests the "average case" execute:
+    /// swap: DAI -> USDC
+    /// fee: USDC
+    /// Different input and fee token.
+    /// Filler balance is nonzero of input token.
+    /// P2 nonce is dirty.
+    /// Specifies a fee recipient.
+    function test_execute_averageCase() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
         ERC20 gasToken = USDC;
@@ -273,9 +214,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-    // - filler has NO dust of input token
-    // - new nonce used in P2 (clean write)
-    function testExecuteWorstCase() public {
+    /// @notice Tests the "worst case" execute:
+    /// swap: DAI -> USDC
+    /// fee: USDC
+    /// Different input and fee token.
+    /// Filler balance is 0 of input token.
+    /// Nonce is clean.
+    /// Specifies a fee recipient.
+    function test_execute_worstCase() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
         ERC20 gasToken = USDC;
@@ -319,7 +265,17 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(tokenOut.balanceOf((filler)), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-    function testPermitAndExecute() public {
+    /// @notice Tests a multicall with a permit and execute.
+    /// Permit:
+    /// Swapper2 permits PERMIT2 spending on USDC.
+    /// Execute:
+    /// swap: USDC -> DAI
+    /// fee: USDC
+    /// Same input and fee token.
+    /// Filler balance is 0 of input token.
+    /// Nonce is clean.
+    /// Specifies a fee recipient.
+    function test_multicall_permitAndExecute() public {
         (address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             generatePermitData(address(PERMIT2), USDC, swapper2PrivateKey);
 
@@ -374,8 +330,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "executor balance");
     }
 
-    // Testing a basic relay order where the swap's output is native ETH
-    function testExecuteWithNativeAsOutput() public {
+    /// @notice Tests execute with a native eth output.
+    /// swap: DAI -> ETH
+    /// fee: DAI
+    /// Same input and fee token.
+    /// Filler balance is 0 of input token.
+    /// Nonce is clean.
+    /// Specifies a fee recipient.
+    function test_execute_withNativeOutput() public {
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
@@ -418,9 +380,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         assertEq(USDC.balanceOf(filler), fillerGasInputBalanceStart + 10 * USDC_ONE, "filler balance");
     }
 
-    // in the case wehre the swapper incorrectly sets the recipient to an address that is not theirs, but the
+    /// @notice Tests that execute reverts in the case where
+    // the swapper incorrectly sets the recipient to an address that is not theirs, but the
     // calldata includes a SWEEP back to them which should cause the transaction to revert
-    function testExecuteDoesNotSucceedIfReactorIsRecipientAndUniversalRouterSweep() public {
+    function test_execute_reverts_ifReactorIsRecipientAndUniversalRouterSweep() public {
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
@@ -443,7 +406,14 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         reactor.execute(signedOrder, filler);
     }
 
-    function testExecuteToFeeRecipient() public {
+    /// @notice Tests execute with a different fee recipient address.
+    /// swap: DAI -> USDC
+    /// fee: USDC
+    /// Different input and fee token.
+    /// Filler balance is 0 of input token.
+    /// Nonce is clean.
+    /// Specifies a fee recipient.
+    function test_execute_differentFeeRecipient() public {
         ERC20 tokenIn = DAI;
         ERC20 tokenOut = USDC;
         ERC20 gasToken = USDC;
@@ -467,10 +437,10 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         _checkpointBalances(swapper, filler, tokenIn, tokenOut, gasToken);
-        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecute");
+        _snapshotClassicSwapCall(tokenIn, 100 * ONE, methodParameters, "testExecuteDifferentRecipient");
 
         vm.prank(filler);
-        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        snapStart("RelayOrderReactorIntegrationTest-testExecuteDifferentRecipient");
         reactor.execute(signedOrder, feeRecipient);
         snapEnd();
 
@@ -562,5 +532,29 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         routerInputBalanceStart = tokenIn.balanceOf(UNIVERSAL_ROUTER);
         routerOutputBalanceStart = tokenOut.balanceOf(UNIVERSAL_ROUTER);
         fillerGasInputBalanceStart = gasInput.balanceOf(_filler);
+    }
+
+    /// @dev Snapshot the gas required for an encoded call
+    /// - must be before the reactor execution since pool state will have changed
+    /// - since our generated calldata assumes that the router has custody of the tokens, we must transfer them here
+    function _snapshotClassicSwapCall(
+        ERC20 inputToken,
+        uint256 inputAmount,
+        MethodParameters memory methodParameters,
+        string memory testName
+    ) internal {
+        uint256 snapshot = vm.snapshot();
+
+        vm.startPrank(swapper);
+
+        snapStart(string.concat("RelayOrderReactorIntegrationTest-", testName, "-ClassicSwap"));
+        inputToken.transfer(UNIVERSAL_ROUTER, inputAmount);
+        (bool success,) = UNIVERSAL_ROUTER.call(methodParameters.data);
+        snapEnd();
+
+        require(success, "call failed");
+        vm.stopPrank();
+
+        vm.revertTo(snapshot);
     }
 }
