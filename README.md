@@ -1,5 +1,5 @@
 # Relayer
-Contracts that allow for the relaying of transactions to the UniversalRouter in exchange for ERC20 tokens. The contract ensures that UniversalRouter is called with the calldata encoded in the order and transfers tokens from the swapper to any specified recipients.
+Contracts that allow for the relaying of transactions to the UniversalRouter in exchange for ERC20 tokens. The contract ensures that UniversalRouter is called with the calldata encoded in the order and transfers tokens from the swapper to a specified recipient.
 
 ## RelayOrderReactor
 The RelayOrderReactor is responsible for validating RelayOrders, transferring input tokens and making any requested onchain calls. There is no additional verification performed after an order is filled, so it is crucial to encode any desired checks for balance or ownership into the calldata within the order.
