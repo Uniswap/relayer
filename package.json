@@ -2,7 +2,7 @@
   "name": "@uniswap/relayer",
   "version": "1.0.0",
   "repository": "git@github.com:Uniswap/relayer.git",
-  "author": "Eric Zhong <eric.zhong@uniswap.org>",
+  "author": "Uniswap",
   "license": "GPL-2.0-or-later",
   "files": [
     "src/base",
