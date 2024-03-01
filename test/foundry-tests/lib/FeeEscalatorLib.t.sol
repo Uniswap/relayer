@@ -13,12 +13,12 @@ contract FeeEscalatorLibTest is Test {
     using FeeEscalatorLib for FeeEscalator;
     using FeeEscalatorBuilder for FeeEscalator;
 
-    function testRelayFeeEscalationNoEscalation(uint256 amount, uint256 startTime, uint256 endTime) public {
+    function test_resolve_noEscalation(uint256 amount, uint256 startTime, uint256 endTime) public {
         vm.assume(endTime >= startTime);
         assertEq(FeeEscalatorLib.resolve(amount, amount, startTime, endTime), amount);
     }
 
-    function testRelayFeeEscalationNoEscalationYet() public {
+    function test_resolve_noEscalationYet() public {
         vm.warp(100);
         // at startTime
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 1 ether);
@@ -28,7 +28,7 @@ contract FeeEscalatorLibTest is Test {
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 1 ether);
     }
 
-    function testRelayFeeEscalation() public {
+    function test_resolve() public {
         vm.warp(150);
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 1.5 ether);
 
@@ -42,7 +42,7 @@ contract FeeEscalatorLibTest is Test {
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 1.9 ether);
     }
 
-    function testRelayFeeEscalationFullyEscalated() public {
+    function test_resolve_fullyEscalated() public {
         vm.warp(200);
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 2 ether);
 
@@ -50,12 +50,12 @@ contract FeeEscalatorLibTest is Test {
         assertEq(FeeEscalatorLib.resolve(1 ether, 2 ether, 100, 200), 2 ether);
     }
 
-    function testRelayFeeEscalationRevertsWithWrongEndStartTimes() public {
+    function test_resolve_reverts_withWrongEndStartTimes() public {
         vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
         FeeEscalatorLib.resolve(1 ether, 2 ether, 200, 100);
     }
 
-    function testRelayFeeEscalationEqualAmounts(uint256 amount, uint256 startTime, uint256 endTime) public {
+    function test_resolve_equalAmounts(uint256 amount, uint256 startTime, uint256 endTime) public {
         vm.assume(endTime >= startTime);
         uint256 time = startTime;
         bound(time, startTime, startTime);
@@ -64,14 +64,12 @@ contract FeeEscalatorLibTest is Test {
         assertEq(FeeEscalatorLib.resolve(amount, amount, startTime, endTime), amount);
     }
 
-    function testRelayFeeEscalationInvalidAmounts() public {
+    function test_resolve_reverts_withInvalidAmounts() public {
         vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
         FeeEscalatorLib.resolve(2 ether, 1 ether, 100, 200);
     }
 
-    function testRelayFeeEscalationBounded(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
-        public
-    {
+    function test_resolve_bounded(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime) public {
         vm.assume(endAmount > startAmount);
         vm.assume(endTime >= startTime);
         uint256 resolved = FeeEscalatorLib.resolve(startAmount, endAmount, startTime, endTime);
@@ -79,7 +77,7 @@ contract FeeEscalatorLibTest is Test {
         assertLe(resolved, endAmount);
     }
 
-    function testToTokenPermissions() public {
+    function test_toTokenPermissions() public {
         address token = makeAddr("token");
         FeeEscalator memory fee =
             FeeEscalator({token: token, startAmount: 1 ether, endAmount: 2 ether, startTime: 100, endTime: 200});
@@ -89,7 +87,7 @@ contract FeeEscalatorLibTest is Test {
         assertEq(permission.amount, 2 ether);
     }
 
-    function testToTransferDetails() public {
+    function test_toTransferDetails() public {
         address filler = makeAddr("filler");
         FeeEscalator memory fee =
             FeeEscalator({token: address(this), startAmount: 1 ether, endAmount: 1 ether, startTime: 0, endTime: 0});
