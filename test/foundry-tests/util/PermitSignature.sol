@@ -7,7 +7,6 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
-import {OrderInfo} from "UniswapX/src/base/ReactorStructs.sol";
 import {Input, RelayOrder} from "../../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {

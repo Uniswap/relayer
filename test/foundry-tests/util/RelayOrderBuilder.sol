@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Input, OrderInfo, RelayOrder, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
+import {Input, RelayOrderInfo, RelayOrder, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {InputBuilder} from "./InputBuilder.sol";
-import {OrderInfoBuilder} from "./OrderInfoBuilder.sol";
+import {RelayOrderInfoBuilder} from "./RelayOrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "./FeeEscalatorBuilder.sol";
 import {MockUniversalRouter} from "./mock/MockUniversalRouter.sol";
 
 library RelayOrderBuilder {
-    using OrderInfoBuilder for OrderInfo;
+    using RelayOrderInfoBuilder for RelayOrderInfo;
 
-    function init(OrderInfo memory info, Input memory input, FeeEscalator memory fee)
+    function init(RelayOrderInfo memory info, Input memory input, FeeEscalator memory fee)
         internal
         pure
         returns (RelayOrder memory)
@@ -36,7 +36,7 @@ library RelayOrderBuilder {
 
     function initDefault(ERC20 token, address reactor, address swapper) internal view returns (RelayOrder memory) {
         return RelayOrder({
-            info: OrderInfoBuilder.init(reactor).withSwapper(swapper),
+            info: RelayOrderInfoBuilder.init(reactor).withSwapper(swapper),
             input: InputBuilder.init(token),
             fee: FeeEscalatorBuilder.init(token),
             universalRouterCalldata: bytes("")

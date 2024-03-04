@@ -8,7 +8,7 @@ import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 /// We construct the permit details and witness information.
 struct RelayOrder {
     // Generic order info
-    OrderInfo info;
+    RelayOrderInfo info;
     // Token info for the order
     Input input;
     // The fee offered for the order
@@ -17,8 +17,8 @@ struct RelayOrder {
     bytes universalRouterCalldata;
 }
 
-/// @dev Generic order information
-struct OrderInfo {
+/// @dev Generic order information for a relay order
+struct RelayOrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper
     // signature commits to the specific reactor that they trust to fill their order properly
@@ -49,4 +49,11 @@ struct FeeEscalator {
     uint256 startTime;
     // The time at which the fee becomes static
     uint256 endTime;
+}
+
+/// @dev external struct including a generic encoded order and swapper signature
+///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
+struct SignedOrder {
+    bytes order;
+    bytes sig;
 }

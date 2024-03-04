@@ -4,16 +4,16 @@ pragma solidity ^0.8.0;
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, FeeEscalator, Input, OrderInfo} from "../base/ReactorStructs.sol";
+import {RelayOrder, FeeEscalator, Input, RelayOrderInfo} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
 import {InputLib} from "./InputLib.sol";
-import {OrderInfoLib} from "./OrderInfoLib.sol";
+import {RelayOrderInfoLib} from "./RelayOrderInfoLib.sol";
 
 library RelayOrderLib {
     using RelayOrderLib for RelayOrder;
     using FeeEscalatorLib for FeeEscalator;
-    using OrderInfoLib for OrderInfo;
+    using RelayOrderInfoLib for RelayOrderInfo;
     using InputLib for Input;
 
     // EIP712 notes that nested structs should be ordered alphabetically.
@@ -26,14 +26,14 @@ library RelayOrderLib {
             "RelayOrder witness)",
             FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
             InputLib.INPUT_TYPESTRING,
-            OrderInfoLib.ORDER_INFO_TYPESTRING,
+            RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING,
             RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
             PermitHash._TOKEN_PERMISSIONS_TYPESTRING
         )
     );
 
     bytes internal constant TOPLEVEL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
-        "RelayOrder(", "OrderInfo info,", "Input input,", "FeeEscalator fee,", "bytes universalRouterCalldata)"
+        "RelayOrder(", "RelayOrderInfo info,", "Input input,", "FeeEscalator fee,", "bytes universalRouterCalldata)"
     );
 
     // EIP712 notes that nested structs should be ordered alphabetically:
@@ -42,7 +42,7 @@ library RelayOrderLib {
         RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
         FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
         InputLib.INPUT_TYPESTRING,
-        OrderInfoLib.ORDER_INFO_TYPESTRING
+        RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING
     );
 
     bytes32 internal constant FULL_RELAY_ORDER_TYPEHASH = keccak256(FULL_RELAY_ORDER_TYPESTRING);

@@ -6,10 +6,10 @@ import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {MockReactor} from "../util/mock/MockReactor.sol";
-import {RelayOrder, OrderInfo, FeeEscalator, Input} from "../../../src/base/ReactorStructs.sol";
+import {RelayOrder, RelayOrderInfo, FeeEscalator, Input} from "../../../src/base/ReactorStructs.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {RelayOrderInfoBuilder} from "../util/RelayOrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
@@ -19,7 +19,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 
 contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
-    using OrderInfoBuilder for OrderInfo;
+    using RelayOrderInfoBuilder for RelayOrderInfo;
     using FeeEscalatorBuilder for FeeEscalator;
     using InputBuilder for Input;
 
@@ -178,14 +178,14 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
     // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
     function test_Permit2WitnessStubTypestring_isCorrect() public {
         bytes memory typestring =
-            "RelayOrder witness)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)RelayOrder(OrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)TokenPermissions(address token,uint256 amount)";
+            "RelayOrder witness)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)RelayOrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)RelayOrder(RelayOrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)TokenPermissions(address token,uint256 amount)";
         assertEq(string(typestring), RelayOrderLib.PERMIT2_ORDER_TYPE);
     }
 
     // Note: This doesn't check for 712 correctness, just accounts for accidental changes to the lib file
     function test_RelayOrderTypestring_isCorrect() public {
         bytes memory typestring =
-            "RelayOrder(OrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)";
+            "RelayOrder(RelayOrderInfo info,Input input,FeeEscalator fee,bytes universalRouterCalldata)FeeEscalator(address token,uint256 startAmount,uint256 endAmount,uint256 startTime,uint256 endTime)Input(address token,uint256 amount,address recipient)RelayOrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline)";
         assertEq(typestring, RelayOrderLib.FULL_RELAY_ORDER_TYPESTRING);
         assertEq(keccak256(typestring), RelayOrderLib.FULL_RELAY_ORDER_TYPEHASH);
     }
