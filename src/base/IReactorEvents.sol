@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 /// @notice events emitted by the reactor
-interface ReactorEvents {
+interface IReactorEvents {
     /// @notice Emitted when an order is filled
     /// @param orderHash The hash of the order that was filled
     /// @param filler The address which executed the fill

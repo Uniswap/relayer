@@ -5,7 +5,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
 import {RelayOrder, FeeEscalator, Input, OrderInfo} from "../base/ReactorStructs.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {IReactorErrors} from "../base/IReactorErrors.sol";
 import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
 import {InputLib} from "./InputLib.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
@@ -50,11 +50,11 @@ library RelayOrderLib {
     /// @notice Validate a relay order
     function validate(RelayOrder memory order) internal view {
         if (order.info.deadline < order.fee.endTime) {
-            revert ReactorErrors.DeadlineBeforeEndTime();
+            revert IReactorErrors.DeadlineBeforeEndTime();
         }
 
         if (address(this) != address(order.info.reactor)) {
-            revert ReactorErrors.InvalidReactor();
+            revert IReactorErrors.InvalidReactor();
         }
     }
 

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {FeeEscalator} from "../base/ReactorStructs.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {IReactorErrors} from "../base/IReactorErrors.sol";
 
 /// @notice Handles the EIP712 defined typehash and hashing for FeeEscalator, and performs escalation calculations
 library FeeEscalatorLib {
@@ -33,9 +33,9 @@ library FeeEscalatorLib {
         returns (uint256 resolvedAmount)
     {
         if (startAmount > endAmount) {
-            revert ReactorErrors.InvalidAmounts();
+            revert IReactorErrors.InvalidAmounts();
         } else if (endTime < startTime) {
-            revert ReactorErrors.EndTimeBeforeStartTime();
+            revert IReactorErrors.EndTimeBeforeStartTime();
         } else if (endTime <= block.timestamp) {
             resolvedAmount = endAmount;
         } else if (startTime >= block.timestamp) {

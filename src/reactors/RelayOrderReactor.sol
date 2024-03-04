@@ -3,10 +3,10 @@ pragma solidity 0.8.24;
 
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
-import {ReactorEvents} from "UniswapX/src/base/ReactorEvents.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 import {RelayOrder} from "../base/ReactorStructs.sol";
-import {ReactorErrors} from "../base/ReactorErrors.sol";
+import {IReactorEvents} from "../base/IReactorEvents.sol";
+import {IReactorErrors} from "../base/IReactorErrors.sol";
 import {Multicall} from "../base/Multicall.sol";
 import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -15,7 +15,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 /// @notice Reactor for handling the execution of RelayOrders
 /// @notice This contract MUST NOT have approvals or priviledged access
 /// @notice any funds in this contract can be swept away by anyone
-contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
+contract RelayOrderReactor is Multicall, IReactorEvents, IReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;
     using Permit2Lib for ERC20;
 

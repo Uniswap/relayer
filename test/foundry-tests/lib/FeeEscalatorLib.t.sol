@@ -6,7 +6,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {FeeEscalator} from "../../../src/base/ReactorStructs.sol";
 import {FeeEscalatorLib} from "../../../src/lib/FeeEscalatorLib.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
-import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
+import {IReactorErrors} from "../../../src/base/IReactorErrors.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 contract FeeEscalatorLibTest is Test {
@@ -51,7 +51,7 @@ contract FeeEscalatorLibTest is Test {
     }
 
     function testRelayFeeEscalationRevertsWithWrongEndStartTimes() public {
-        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(IReactorErrors.EndTimeBeforeStartTime.selector);
         FeeEscalatorLib.resolve(1 ether, 2 ether, 200, 100);
     }
 
@@ -65,7 +65,7 @@ contract FeeEscalatorLibTest is Test {
     }
 
     function testRelayFeeEscalationInvalidAmounts() public {
-        vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+        vm.expectRevert(IReactorErrors.InvalidAmounts.selector);
         FeeEscalatorLib.resolve(2 ether, 1 ether, 100, 200);
     }
 
@@ -100,7 +100,7 @@ contract FeeEscalatorLibTest is Test {
 
     function test_fuzz_resolve_startTimeEqualsEndTime(uint256 startAmount, uint256 endAmount) public {
         if (startAmount > endAmount) {
-            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+            vm.expectRevert(IReactorErrors.InvalidAmounts.selector);
         }
         uint256 resolvedAmount = FeeEscalatorLib.resolve(startAmount, endAmount, block.timestamp, block.timestamp);
         assertEq(resolvedAmount, endAmount);

@@ -9,7 +9,7 @@ import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Input, OrderInfo, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
-import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
+import {IReactorErrors} from "../../../src/base/IReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
@@ -246,7 +246,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(ReactorErrors.InvalidReactor.selector);
+        vm.expectRevert(IReactorErrors.InvalidReactor.selector);
         reactor.execute(signedOrder, filler);
     }
 
@@ -313,7 +313,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(ReactorErrors.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(IReactorErrors.EndTimeBeforeStartTime.selector);
         reactor.execute(signedOrder, filler);
     }
 
@@ -324,7 +324,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
+        vm.expectRevert(IReactorErrors.DeadlineBeforeEndTime.selector);
         reactor.execute(signedOrder, filler);
     }
 

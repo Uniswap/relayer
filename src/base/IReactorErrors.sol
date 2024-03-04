@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-interface ReactorErrors {
+interface IReactorErrors {
     /// @notice Thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
 

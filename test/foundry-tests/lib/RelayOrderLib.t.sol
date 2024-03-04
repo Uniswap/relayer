@@ -8,7 +8,7 @@ import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {MockReactor} from "../util/mock/MockReactor.sol";
 import {RelayOrder, OrderInfo, FeeEscalator, Input} from "../../../src/base/ReactorStructs.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
-import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
+import {IReactorErrors} from "../../../src/base/IReactorErrors.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -52,14 +52,14 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
         order.info = order.info.withDeadline(block.timestamp + 1);
         order.fee = order.fee.withEndTime(block.timestamp + 2);
 
-        vm.expectRevert(ReactorErrors.DeadlineBeforeEndTime.selector);
+        vm.expectRevert(IReactorErrors.DeadlineBeforeEndTime.selector);
         RelayOrderLib.validate(order);
     }
 
     function test_validate_reverts_InvalidReactor() public {
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         order.info.reactor = IRelayOrderReactor(address(0));
-        vm.expectRevert(ReactorErrors.InvalidReactor.selector);
+        vm.expectRevert(IReactorErrors.InvalidReactor.selector);
         reactor.validate(order);
     }
 
@@ -100,7 +100,7 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
         order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount);
         if (startAmount > endAmount) {
-            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+            vm.expectRevert(IReactorErrors.InvalidAmounts.selector);
         }
         ISignatureTransfer.SignatureTransferDetails[] memory details =
             RelayOrderLib.toTransferDetails(order, address(this));
@@ -118,7 +118,7 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
         order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount).withStartTime(block.timestamp + 1)
             .withEndTime(block.timestamp + 1);
         if (startAmount > endAmount) {
-            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+            vm.expectRevert(IReactorErrors.InvalidAmounts.selector);
         }
         ISignatureTransfer.SignatureTransferDetails[] memory details =
             RelayOrderLib.toTransferDetails(order, address(this));
@@ -136,7 +136,7 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
         order.fee = order.fee.withStartAmount(startAmount).withEndAmount(endAmount).withStartTime(block.timestamp + 1)
             .withEndTime(block.timestamp + 1);
         if (startAmount > endAmount) {
-            vm.expectRevert(ReactorErrors.InvalidAmounts.selector);
+            vm.expectRevert(IReactorErrors.InvalidAmounts.selector);
         }
         vm.warp(block.timestamp + 1);
         ISignatureTransfer.SignatureTransferDetails[] memory details =

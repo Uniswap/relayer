@@ -13,7 +13,7 @@ import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
 import {ArrayBuilder} from "UniswapX/test/util/ArrayBuilder.sol";
 import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Input, OrderInfo, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
-import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
+import {IReactorEvents} from "../../../src/base/IReactorEvents.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
@@ -23,7 +23,6 @@ import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
-import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 
 contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitSignature {
     using stdJson for string;
@@ -465,7 +464,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(this), swapper, order.info.nonce);
+        emit IReactorEvents.Fill(order.hash(), address(this), swapper, order.info.nonce);
         reactor.execute(signedOrder, address(this));
         assertEq(order.universalRouterCalldata.length, 0);
     }
@@ -480,7 +479,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit IReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));
@@ -497,7 +496,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit IReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));
