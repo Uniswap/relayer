@@ -3,19 +3,18 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
-import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {MockReactor} from "../util/mock/MockReactor.sol";
-import {RelayOrder, RelayOrderInfo, FeeEscalator, Input} from "../../../src/base/ReactorStructs.sol";
+import {RelayOrder, RelayOrderInfo, FeeEscalator, Input, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {RelayOrderInfoBuilder} from "../util/RelayOrderInfoBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 
 contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
     using RelayOrderInfoBuilder for RelayOrderInfo;

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {DeployRelayOrderReactor} from "../../../script/DeployRelayOrderReactor.s.sol";
 import {RelayOrder, RelayOrderInfo, Input, FeeEscalator, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
@@ -14,6 +13,7 @@ import {InputBuilder} from "../util/InputBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 
 contract DeployRelayOrderReactorTest is Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;

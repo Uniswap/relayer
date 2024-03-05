@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
-import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
 import {Input, RelayOrderInfo, FeeEscalator, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
@@ -19,6 +16,8 @@ import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {ONE} from "../util/Constants.sol";
 import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
