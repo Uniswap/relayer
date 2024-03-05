@@ -20,14 +20,14 @@ library RelayOrderLib {
     // With our added RelayOrder witness, the top level type becomes
     // "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,RelayOrder witness)"
     // Meaning we order the nested structs as follows:
-    // FeeEscalator, Input, OrderInfo, RelayOrder, TokenPermissions
+    // FeeEscalator, Input, RelayOrder, RelayOrderInfo TokenPermissions
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked(
             "RelayOrder witness)",
             FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
             InputLib.INPUT_TYPESTRING,
-            RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING,
             RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
+            RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING,
             PermitHash._TOKEN_PERMISSIONS_TYPESTRING
         )
     );
