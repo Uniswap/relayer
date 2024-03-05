@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
-import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
 import {MockReactor} from "../util/mock/MockReactor.sol";
 import {RelayOrder, RelayOrderInfo, FeeEscalator, Input} from "../../../src/base/ReactorStructs.sol";
@@ -58,7 +57,7 @@ contract RelayOrderLibTest is Test, DeployPermit2, PermitSignature {
 
     function test_validate_reverts_InvalidReactor() public {
         RelayOrder memory order = RelayOrderBuilder.initDefault(token, address(reactor), swapper);
-        order.info.reactor = IRelayOrderReactor(address(0));
+        order.info.reactor = address(0);
         vm.expectRevert(ReactorErrors.InvalidReactor.selector);
         reactor.validate(order);
     }

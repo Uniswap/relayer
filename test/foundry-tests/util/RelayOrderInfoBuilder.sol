@@ -6,12 +6,7 @@ import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol
 
 library RelayOrderInfoBuilder {
     function init(address reactor) internal view returns (RelayOrderInfo memory) {
-        return RelayOrderInfo({
-            reactor: IRelayOrderReactor(reactor),
-            swapper: address(0),
-            nonce: 0,
-            deadline: block.timestamp + 100
-        });
+        return RelayOrderInfo({reactor: reactor, swapper: address(0), nonce: 0, deadline: block.timestamp + 100});
     }
 
     function withSwapper(RelayOrderInfo memory info, address _swapper) internal pure returns (RelayOrderInfo memory) {

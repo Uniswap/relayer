@@ -21,7 +21,7 @@ struct RelayOrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper
     // signature commits to the specific reactor that they trust to fill their order properly
-    IRelayOrderReactor reactor;
+    address reactor;
     // The address of the user which created the order
     // Note that this must be included so that order hashes are unique by swapper
     address swapper;
