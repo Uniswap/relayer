@@ -12,7 +12,7 @@ import {RelayOrderLib} from "../lib/RelayOrderLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @notice Reactor for handling the execution of RelayOrders
-/// @notice This contract MUST NOT have approvals or priviledged access
+/// @notice This contract MUST NOT have approvals or privileged access
 /// @notice any funds in this contract can be swept away by anyone
 contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrderReactor {
     using RelayOrderLib for RelayOrder;

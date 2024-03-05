@@ -13,7 +13,7 @@ struct RelayOrder {
     Input input;
     // The fee offered for the order
     FeeEscalator fee;
-    // ecnoded data relayed to the universal router
+    // encoded data relayed to the universal router
     bytes universalRouterCalldata;
 }
 
