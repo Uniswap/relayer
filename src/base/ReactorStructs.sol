@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
 
 /// @dev Note that all of these fields are signed over. Some are hashed in the base permit and some are hashed in the passed in witness.

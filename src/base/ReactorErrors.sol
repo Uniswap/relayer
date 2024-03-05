@@ -13,7 +13,4 @@ interface ReactorErrors {
 
     /// @notice Thrown when the order targets a different reactor
     error InvalidReactor();
-
-    /// @notice Thrown if the order has expired
-    error DeadlinePassed();
 }
