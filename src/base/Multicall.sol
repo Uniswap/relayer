@@ -19,7 +19,7 @@ abstract contract Multicall is IMulticall {
             }
             results[i] = result;
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

@@ -4,26 +4,25 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
-import {MockERC20} from "UniswapX/test/util/mock/MockERC20.sol";
-import {CurrencyLibrary} from "UniswapX/src/lib/CurrencyLibrary.sol";
-import {Input, OrderInfo, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
+import {Input, RelayOrderInfo, FeeEscalator, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorErrors} from "../../../src/base/ReactorErrors.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderLib, RelayOrder} from "../../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {RelayOrderInfoBuilder} from "../util/RelayOrderInfoBuilder.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {ONE} from "../util/Constants.sol";
 import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
-    using OrderInfoBuilder for OrderInfo;
+    using RelayOrderInfoBuilder for RelayOrderInfo;
     using InputBuilder for Input;
     using FeeEscalatorBuilder for FeeEscalator;
     using RelayOrderBuilder for RelayOrder;
@@ -37,7 +36,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address filler;
     address mockUniversalRouter;
 
-    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     error InvalidNonce();
@@ -74,8 +72,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withEndAmount(ONE).withEndTime(block.timestamp + 1000);
-        OrderInfo memory orderInfo =
-            OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
+        RelayOrderInfo memory orderInfo =
+            RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee);
 
         SignedOrder memory signedOrder =
@@ -85,7 +83,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);
@@ -101,8 +99,8 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
 
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(tokenIn).withStartAmount(0).withEndAmount(ONE).withEndTime(block.timestamp + 1000);
-        OrderInfo memory orderInfo =
-            OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
+        RelayOrderInfo memory orderInfo =
+            RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, fee);
 
         SignedOrder memory signedOrder =
@@ -112,7 +110,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         reactor.execute(signedOrder);
@@ -124,15 +122,15 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         Input memory input;
         FeeEscalator memory noFee;
 
-        OrderInfo memory orderInfo =
-            OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
+        RelayOrderInfo memory orderInfo =
+            RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000);
         RelayOrder memory order = RelayOrderBuilder.init(orderInfo, input, noFee);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // should be fillable
         vm.prank(filler);
         reactor.execute(signedOrder, filler);
@@ -292,7 +290,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // expect we can execute the first order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);

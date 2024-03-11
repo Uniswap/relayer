@@ -1,28 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-
 /// @dev Note that all of these fields are signed over. Some are hashed in the base permit and some are hashed in the passed in witness.
 /// We construct the permit details and witness information.
 struct RelayOrder {
     // Generic order info
-    OrderInfo info;
+    RelayOrderInfo info;
     // Token info for the order
     Input input;
     // The fee offered for the order
     FeeEscalator fee;
-    // ecnoded data relayed to the universal router
+    // encoded data relayed to the universal router
     bytes universalRouterCalldata;
 }
 
-/// @dev Generic order information
-struct OrderInfo {
+/// @dev Generic order information for a relay order
+struct RelayOrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the swapper
     // signature commits to the specific reactor that they trust to fill their order properly
-    IRelayOrderReactor reactor;
+    address reactor;
     // The address of the user which created the order
     // Note that this must be included so that order hashes are unique by swapper
     address swapper;
@@ -49,4 +46,11 @@ struct FeeEscalator {
     uint256 startTime;
     // The time at which the fee becomes static
     uint256 endTime;
+}
+
+/// @dev Extneral struct including a generic encoded order and swapper signature
+/// The order is decoded as a RelayOrder
+struct SignedOrder {
+    bytes order;
+    bytes sig;
 }

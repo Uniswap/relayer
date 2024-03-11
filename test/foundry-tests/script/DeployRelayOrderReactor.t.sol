@@ -2,23 +2,23 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {SignedOrder} from "UniswapX/src/base/ReactorStructs.sol";
-import {DeployPermit2} from "UniswapX/test/util/DeployPermit2.sol";
 import {DeployRelayOrderReactor} from "../../../script/DeployRelayOrderReactor.s.sol";
-import {RelayOrder, OrderInfo, Input, FeeEscalator} from "../../../src/base/ReactorStructs.sol";
+import {RelayOrder, RelayOrderInfo, Input, FeeEscalator, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
 import {RelayOrderLib} from "../../../src/lib/RelayOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {RelayOrderInfoBuilder} from "../util/RelayOrderInfoBuilder.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 
 contract DeployRelayOrderReactorTest is Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
-    using OrderInfoBuilder for OrderInfo;
+    using RelayOrderInfoBuilder for RelayOrderInfo;
     using InputBuilder for Input;
     using FeeEscalatorBuilder for FeeEscalator;
     using RelayOrderBuilder for RelayOrder;
@@ -27,8 +27,6 @@ contract DeployRelayOrderReactorTest is Test, PermitSignature, DeployPermit2 {
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     uint256 constant ONE = 10 ** 18;
-
-    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
 
     function setUp() public {
         deployPermit2();
@@ -63,7 +61,7 @@ contract DeployRelayOrderReactorTest is Test, PermitSignature, DeployPermit2 {
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(reactor.PERMIT2()), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);

@@ -61,7 +61,7 @@ library FeeEscalatorLib {
     }
 
     /// @notice Transforms the fee data into a SignatureTransferDetails struct needed for the permit call.
-    /// @dev The recipient is the fee.recipient if set, otherwise the caller provided feeRecipient
+    /// @dev The feeRecipient param is either the original provided feeRecipient or msg.sender
     /// @param fee The order fee
     /// @param feeRecipient the address to receive any specified fee
     function toTransferDetails(FeeEscalator memory fee, address feeRecipient)
