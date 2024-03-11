@@ -461,7 +461,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(this), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(this), swapper, order.info.nonce);
         reactor.execute(signedOrder, address(this));
         assertEq(order.universalRouterCalldata.length, 0);
     }
@@ -476,7 +476,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));
@@ -493,7 +493,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit ReactorEvents.Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
 
         vm.prank(address(filler));
         reactor.execute(signedOrder, address(filler));

@@ -8,5 +8,5 @@ interface ReactorEvents {
     /// @param filler The address which executed the fill
     /// @param swapper The swapper of the filled order
     /// @param nonce The nonce of the filled order
-    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
+    event Relay(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
 }

@@ -45,7 +45,7 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
             }
         }
 
-        emit Fill(orderHash, msg.sender, order.info.swapper, order.info.nonce);
+        emit Relay(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
     /// @inheritdoc IRelayOrderReactor

@@ -18,6 +18,7 @@ import {ONE} from "../util/Constants.sol";
 import {MockUniversalRouter} from "../util/mock/MockUniversalRouter.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
+import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 
 contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPermit2 {
     using RelayOrderLib for RelayOrder;
@@ -35,7 +36,6 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
     address filler;
     address mockUniversalRouter;
 
-    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     error InvalidNonce();
@@ -83,7 +83,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);
@@ -110,7 +110,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // execute order
         vm.prank(filler);
         reactor.execute(signedOrder);
@@ -130,7 +130,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // should be fillable
         vm.prank(filler);
         reactor.execute(signedOrder, filler);
@@ -290,7 +290,7 @@ contract RelayOrderReactorTest is GasSnapshot, Test, PermitSignature, DeployPerm
         vm.warp(block.timestamp + 250);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(order.hash(), address(filler), swapper, order.info.nonce);
+        emit ReactorEvents.Relay(order.hash(), address(filler), swapper, order.info.nonce);
         // expect we can execute the first order
         vm.prank(filler);
         reactor.execute(signedOrder, filler);

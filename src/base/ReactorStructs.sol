@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IRelayOrderReactor} from "../interfaces/IRelayOrderReactor.sol";
-
 /// @dev Note that all of these fields are signed over. Some are hashed in the base permit and some are hashed in the passed in witness.
 /// We construct the permit details and witness information.
 struct RelayOrder {
@@ -50,8 +48,8 @@ struct FeeEscalator {
     uint256 endTime;
 }
 
-/// @dev external struct including a generic encoded order and swapper signature
-///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
+/// @dev Extneral struct including a generic encoded order and swapper signature
+/// The order is decoded as a RelayOrder
 struct SignedOrder {
     bytes order;
     bytes sig;
