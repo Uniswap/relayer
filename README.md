@@ -24,7 +24,22 @@ The fee specified in a RelayOrder is sent directly to `feeRecipient` and can opt
 
 # Integrating as a filler
 
+# Deploy Script 
+
+forge script --broadcast \
+--rpc-url <RPC_URL> \
+--private-key <PRIV_KEY> \
+--sig 'run(address)' \
+DeployRelayOrderReactor \
+<UNIVERSAL_ROUTER_ADDRESS> \
+--etherscan-api-key <API_KEY> \
+--verify
+
 # Deployment Addresses
+
+| Address           | Chain | UniversalRouter Address |
+| :---------------- | :------: | ----: |
+| [0x0000000000A4e21E2597DCac987455c48b12edBF](https://etherscan.io/address/0x0000000000A4e21E2597DCac987455c48b12edBF)    |   Mainnet   | [0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) |
 
 # Usage
 
