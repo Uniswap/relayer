@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
-import {RelayOrder, FeeEscalator, Input, RelayOrderInfo} from "../base/ReactorStructs.sol";
+import {RelayOrder, FeeEscalator, Input, Rebate, RelayOrderInfo} from "../base/ReactorStructs.sol";
 import {ReactorErrors} from "../base/ReactorErrors.sol";
 import {FeeEscalatorLib} from "./FeeEscalatorLib.sol";
 import {InputLib} from "./InputLib.sol";
+import {RebateLib} from "./RebateLib.sol";
 import {RelayOrderInfoLib} from "./RelayOrderInfoLib.sol";
 
 library RelayOrderLib {
+    using SafeTransferLib for ERC20;
     using RelayOrderLib for RelayOrder;
     using FeeEscalatorLib for FeeEscalator;
     using RelayOrderInfoLib for RelayOrderInfo;
     using InputLib for Input;
+    using RebateLib for Rebate;
 
     // EIP712 notes that nested structs should be ordered alphabetically.
     // With our added RelayOrder witness, the top level type becomes
@@ -26,6 +31,7 @@ library RelayOrderLib {
             "RelayOrder witness)",
             FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
             InputLib.INPUT_TYPESTRING,
+            RebateLib.REBATE_TYPESTRING,
             RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
             RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING,
             PermitHash._TOKEN_PERMISSIONS_TYPESTRING
@@ -33,15 +39,16 @@ library RelayOrderLib {
     );
 
     bytes internal constant TOPLEVEL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
-        "RelayOrder(", "RelayOrderInfo info,", "Input input,", "FeeEscalator fee,", "bytes universalRouterCalldata)"
+        "RelayOrder(", "RelayOrderInfo info,", "Input input,", "FeeEscalator fee,", "Rebate rebate", "bytes universalRouterCalldata)"
     );
 
     // EIP712 notes that nested structs should be ordered alphabetically:
-    // FeeEscalator, Input, OrderInfo
+    // FeeEscalator, Input, Rebate, RelayOrderInfo
     bytes internal constant FULL_RELAY_ORDER_TYPESTRING = abi.encodePacked(
         RelayOrderLib.TOPLEVEL_RELAY_ORDER_TYPESTRING,
         FeeEscalatorLib.FEE_ESCALATOR_TYPESTRING,
         InputLib.INPUT_TYPESTRING,
+        RebateLib.REBATE_TYPESTRING,
         RelayOrderInfoLib.RELAY_ORDER_INFO_TYPESTRING
     );
 
@@ -110,6 +117,13 @@ library RelayOrderLib {
         );
     }
 
+    function handleRebate(RelayOrder memory order) internal {
+        uint256 resolvedAmount = RebateLib.resolve(order.rebate.minAmount, order.rebate.bpsPerGas);
+        if (resolvedAmount > 0) {
+            ERC20(order.rebate.token).safeTransfer(order.info.swapper, resolvedAmount);
+        }
+    }
+
     /// @notice hash The given order
     /// @param order The order to hash
     /// @return The eip-712 order hash
@@ -120,6 +134,7 @@ library RelayOrderLib {
                 order.info.hash(),
                 order.input.hash(),
                 order.fee.hash(),
+                order.rebate.hash(),
                 keccak256(order.universalRouterCalldata)
             )
         );
