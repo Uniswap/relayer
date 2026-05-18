@@ -30,10 +30,18 @@ jobs:
       - name: Run forge coverage
         id: coverage
         run: |
+          # Per-call unguessable heredoc delimiter (defense in depth against
+          # the $GITHUB_OUTPUT duplicate-key last-write-wins injection class).
+          # Capture forge output first so we can size-guard before writing.
+          COV_DELIM_RAND=$(openssl rand -hex 16)
+          [ -n "$COV_DELIM_RAND" ] || { echo "::error::openssl rand returned empty" >&2; exit 1; }
+          COVERAGE_BODY=$(forge coverage --ir-minimum | grep '^|' | grep -v 'test/' | tr -d \` | tr -d $ | tr -d { | tr -d })
+          [ "$(printf '%s' "$COVERAGE_BODY" | wc -c)" -lt 900000 ] || { echo "::error::coverage exceeds 900KB" >&2; exit 1; }
+          COV_DELIM="COVERAGE_DELIMITER_$(date +%s%N)_${COV_DELIM_RAND}"
           {
-          echo 'COVERAGE<<EOF'
-          forge coverage --ir-minimum | grep '^|' | grep -v 'test/' | tr -d \` | tr -d $ | tr -d { | tr -d }
-          echo EOF
+            echo "COVERAGE<<${COV_DELIM}"
+            echo "$COVERAGE_BODY"
+            echo "${COV_DELIM}"
           } >> "$GITHUB_OUTPUT"
         env:
           FOUNDRY_RPC_URL: "${{ secrets.RPC_URL }}"
