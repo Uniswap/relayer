@@ -9,7 +9,7 @@ import {AddressBuilder} from "permit2/test/utils/AddressBuilder.sol";
 import {AmountBuilder} from "permit2/test/utils/AmountBuilder.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {Input, RelayOrderInfo, FeeEscalator, SignedOrder} from "../../../src/base/ReactorStructs.sol";
+import {Input, RelayOrderInfo, FeeEscalator, Rebate, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {IRelayOrderReactor} from "../../../src/interfaces/IRelayOrderReactor.sol";
 import {RelayOrderReactor} from "../../../src/reactors/RelayOrderReactor.sol";
@@ -18,6 +18,7 @@ import {RelayOrderInfoBuilder} from "../util/RelayOrderInfoBuilder.sol";
 import {InputBuilder} from "../util/InputBuilder.sol";
 import {RelayOrderBuilder} from "../util/RelayOrderBuilder.sol";
 import {FeeEscalatorBuilder} from "../util/FeeEscalatorBuilder.sol";
+import {RebateBuilder} from "../util/RebateBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MethodParameters, Interop} from "../util/Interop.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
@@ -119,6 +120,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
 
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee = FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * ONE).withEndAmount(10 * ONE);
+        Rebate memory rebate = RebateBuilder.init(tokenOut);
 
         uint256 amountOutMin = 95 * USDC_ONE;
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
@@ -128,7 +130,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ).withNonce(1);
 
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -178,6 +180,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
 
+        Rebate memory rebate = RebateBuilder.init(tokenOut);
+
         uint256 amountOutMin = 95 * USDC_ONE;
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
@@ -186,7 +190,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ).withNonce(1);
 
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -228,6 +232,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
 
+        Rebate memory rebate = RebateBuilder.init(tokenOut);
+
         RelayOrderInfo memory orderInfo = RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
             block.timestamp + 100
         ).withNonce(0);
@@ -235,7 +241,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
 
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -279,30 +285,36 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
         // making a USDC -> DAI swap
-        Input memory input = InputBuilder.init(USDC).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
-        FeeEscalator memory fee =
-            FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
+        SignedOrder memory signedOrder;
+        {
+            Input memory input = InputBuilder.init(USDC).withAmount(100 * USDC_ONE).withRecipient(UNIVERSAL_ROUTER);
+            FeeEscalator memory fee =
+                FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
 
-        MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
+            Rebate memory rebate = RebateBuilder.init(USDC);
 
-        RelayOrderInfo memory orderInfo = RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper2)
-            .withDeadline(block.timestamp + 100).withNonce(0);
+            MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_USDC_DAI_SWAPPER2");
 
-        RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderInfo memory orderInfo = RelayOrderInfoBuilder.init(address(reactor)).withSwapper(swapper2)
+                .withDeadline(block.timestamp + 100).withNonce(0);
 
-        SignedOrder memory signedOrder =
-            SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
+            RelayOrder memory order =
+                RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
+
+            signedOrder =
+                SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
+
+            // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
+            // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
+            _snapshotClassicSwapCall(USDC, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
+        }
+
 
         // build multicall data
         bytes[] memory data = new bytes[](2);
         data[0] =
             abi.encodeWithSelector(reactor.permit.selector, address(USDC), swapper2, spender, amount, deadline, v, r, s);
         data[1] = abi.encodeWithSignature("execute((bytes,bytes),address)", signedOrder, filler);
-
-        // TODO: This snapshot should always pull tokens in from permit2 and then expose an option to benchmark it with an an allowance on the UR vs. without.
-        // For this test, we should benchmark that the user has not permitted permit2, and also has not approved the UR.
-        _snapshotClassicSwapCall(USDC, 100 * USDC_ONE, methodParameters, "testPermitAndExecute");
 
         _checkpointBalances(swapper2, filler, USDC, DAI, USDC);
 
@@ -337,6 +349,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
+        Rebate memory rebate = RebateBuilder.init(USDC);
 
         uint256 amountOutMin = 51651245170979377; // with 5% slipapge at forked block
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_ETH");
@@ -345,7 +358,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
             block.timestamp + 100
         ).withNonce(0);
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -383,6 +396,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input memory input = InputBuilder.init(DAI).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(USDC).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
+        Rebate memory rebate = RebateBuilder.init(USDC);
 
         MethodParameters memory methodParameters =
             readFixture(json, "._UNISWAP_V3_DAI_USDC_RECIPIENT_REACTOR_WITH_SWEEP");
@@ -392,7 +406,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ).withNonce(0);
 
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
@@ -418,6 +432,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         Input memory input = InputBuilder.init(tokenIn).withAmount(100 * ONE).withRecipient(UNIVERSAL_ROUTER);
         FeeEscalator memory fee =
             FeeEscalatorBuilder.init(gasToken).withStartAmount(10 * USDC_ONE).withEndAmount(10 * USDC_ONE);
+        Rebate memory rebate = RebateBuilder.init(tokenOut);
 
         uint256 amountOutMin = 95 * USDC_ONE;
         MethodParameters memory methodParameters = readFixture(json, "._UNISWAP_V3_DAI_USDC");
@@ -427,7 +442,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, Interop, PermitS
         ).withNonce(1);
 
         RelayOrder memory order =
-            RelayOrderBuilder.init(orderInfo, input, fee).withUniversalRouterCalldata(methodParameters.data);
+            RelayOrderBuilder.init(orderInfo, input, fee, rebate).withUniversalRouterCalldata(methodParameters.data);
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));

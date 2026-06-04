@@ -10,6 +10,8 @@ struct RelayOrder {
     Input input;
     // The fee offered for the order
     FeeEscalator fee;
+    // The rebate offered for the order
+    Rebate rebate;
     // encoded data relayed to the universal router
     bytes universalRouterCalldata;
 }
@@ -46,6 +48,13 @@ struct FeeEscalator {
     uint256 startTime;
     // The time at which the fee becomes static
     uint256 endTime;
+}
+
+/// @notice A RelayOrder can specify a rebate to be paid to the swapper
+struct Rebate {
+    address token;
+    uint256 minAmount;
+    uint256 bpsPerGas;
 }
 
 /// @dev Extneral struct including a generic encoded order and swapper signature
