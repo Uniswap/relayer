@@ -45,6 +45,9 @@ contract RelayOrderReactor is Multicall, ReactorEvents, ReactorErrors, IRelayOrd
             }
         }
 
+        // rebate the swapper if necessary
+        order.handleRebate();
+
         emit Relay(orderHash, msg.sender, order.info.swapper, order.info.nonce);
     }
 
